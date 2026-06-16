@@ -1,16 +1,17 @@
 export interface AuthInscription {
-    email: string;
+    mail: string;
     pseudo: string;
     password: string;
+    passwordConfirm: string;
 }
 
 export interface AuthConnexion {
-    identifier: string;
+    mail: string;
     password: string;
 }
 
 export interface AuthResponse {
-    success: boolean;
-    token?: string;
-    error?: string;
+    apiToken?: string;
+    id?: number;
+    error?: string
 }

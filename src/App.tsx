@@ -1,8 +1,14 @@
-import AuthPage from './pages/AuthPage'
-import './index.css'
+import { Routes, Route } from 'react-router-dom'
+//import AuthPage from './pages/AuthPage'
+import HomePage from './pages/HomePage'
 
 function App() {
-  return <AuthPage />
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/home" element={<HomePage />} />
+    </Routes>
+  )
 }
 
 export default App

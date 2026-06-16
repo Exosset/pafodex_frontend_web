@@ -3,6 +3,7 @@ import { Eye, EyeOff, Mail, Lock, User2, Sparkles, Loader2 } from "lucide-react"
 import { buildAuthConnexion, buildAuthInscription } from "../mappers/authMapper";
 import { validateLogin, validateRegister, type ValidationErrors } from "../validators/authValidator";
 import { login, register } from "../services/authService";
+import { useNavigate } from "react-router-dom";
 
 type Mode = "login" | "register";
 
@@ -13,39 +14,42 @@ export default function AuthPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const navigate = useNavigate();
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError(null);
-
     const data = Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string, string>;
 
     // 1. Validation
     const validationErrors =
       mode === "login"
-        ? validateLogin(data.identifier, data.password)
-        : validateRegister(data.username, data.identifier, data.password, data.confirmPassword);
+        ? validateLogin(data.mail, data.password)
+        : validateRegister(data.username, data.mail, data.password, data.confirmPassword);
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      return; // on n'appelle pas le mapper si la validation échoue
+      return;
     }
     setErrors({});
 
-    // 2. Construction du payload (seulement si validé)
+    // 2. Construction du payload
     setIsSubmitting(true);
     try {
       const result =
         mode === "login"
-          ? await login(buildAuthConnexion(data.identifier, data.password))
-          : await register(buildAuthInscription(data.username, data.identifier, data.password));
+          ? await login(buildAuthConnexion(data.mail, data.password))
+          : await register(buildAuthInscription(data.username, data.mail, data.password, data.confirmPassword));
 
       // 3. Traitement de la réponse
-      if (!result.success) {
+      console.log("Un resultat: ", result)
+      if (!result.apiToken) {
         setApiError(result.error ?? "Une erreur est survenue, réessaie.");
         return;
       }
 
-      // TODO: stocker le token (result.token), rediriger l'utilisateur
+      // 4. Redirection vers la page d'accueil
+      navigate("/home");
     } catch {
       setApiError("Impossible de contacter le serveur. Réessaie plus tard.");
     } finally {
@@ -129,12 +133,12 @@ export default function AuthPage() {
             )}
 
             <Field
-              label={mode === "login" ? "Pseudo ou e-mail" : "E-mail"}
-              name="identifier"
+              label={mode === "login" ? "E-mail" : "E-mail"}
+              name="mail"
               type={mode === "login" ? "text" : "email"}
               placeholder={mode === "login" ? "sacha@pokemon.fr ou Sacha_du_Bourg" : "sacha@pokemon.fr"}
               icon={<Mail size={16} />}
-              error={errors.identifier}
+              error={errors.mail}
             />
 
             {/* Mot de passe */}

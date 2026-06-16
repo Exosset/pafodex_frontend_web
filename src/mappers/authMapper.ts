@@ -1,9 +1,9 @@
 import type { AuthConnexion, AuthInscription } from "../types/auth";
 
-export function buildAuthConnexion(identifier: string, password: string): AuthConnexion {
-    return { identifier, password };
+export function buildAuthConnexion(mail: string, password: string): AuthConnexion {
+    return { mail, password };
 }
 
-export function buildAuthInscription(pseudo: string, email: string, password: string): AuthInscription {
-    return { email, pseudo, password };
+export function buildAuthInscription(pseudo: string, mail: string, password: string, passwordConfirm: string): AuthInscription {
+    return { mail, pseudo, password, passwordConfirm };
 }
