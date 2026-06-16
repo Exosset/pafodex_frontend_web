@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Permet d'utiliser les variantes dark: pilotées par une classe
+   .dark sur <html> (et non par la préférence système) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* --- Mode clair (valeurs fournies) --- */
+  --color-primary: #6265ED;
+  --color-primary-foreground: #FAFCFE;
+  --color-background: #FAFCFE;
+  --color-foreground: #0C121A;
+  --color-card: #FFFFFF;
+  --color-secondary: #EEF2F7;
+  --color-muted: #EEF2F7;
+  --color-muted-foreground: #626975;
+  --color-accent: #E6F6EE;
+  --color-success: #00C385;
+  --color-warning: #F3BA25;
+  --color-destructive: #EE3533;
+  --color-border: #E1E5EA;
+  --color-input: #E1E5EA;
+  --color-ring: #6265ED;
+  --color-pokemon: #E85A48;
+  --color-mtg: #496DC3;
+
+  /* --- Valeurs complétées (non fournies dans la palette) ---
+     Choisies pour rester cohérentes avec le mode clair. */
+  --color-card-foreground: #0C121A;
+  --color-secondary-foreground: #0C121A;
+  --color-accent-foreground: #0C121A;
+  --color-destructive-foreground: #FAFCFE;
+}
+
+.dark {
+  /* --- Mode sombre (valeurs fournies) --- */
+  --color-primary: #848FFF;
+  --color-background: #080D16;
+  --color-foreground: #F7F9FA;
+  --color-card: #11161F;
+  --color-secondary: #1E242E;
+  --color-muted-foreground: #979FAB;
+  --color-accent: #193429;
+  --color-success: #00BC7F;
+  --color-warning: #E6AD00;
+  --color-destructive: #F9423D;
+  --color-pokemon: #FF715D;
+  --color-mtg: #658BE4;
+
+  /* --- Valeurs complétées (non fournies dans la palette) --- */
+  --color-primary-foreground: #080D16; /* texte sombre sur primary clair */
+  --color-card-foreground: #F7F9FA;
+  --color-secondary-foreground: #F7F9FA;
+  --color-muted: #1E242E; /* = secondary */
+  --color-accent-foreground: #F7F9FA;
+  --color-destructive-foreground: #F7F9FA;
+  --color-border: #1E242E; /* = secondary */
+  --color-input: #1E242E; /* = secondary */
+  --color-ring: #848FFF; /* = primary */
+}
