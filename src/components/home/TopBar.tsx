@@ -4,9 +4,10 @@ export interface TopBarProps {
   title: string;
   greeting: string;
   hasNotification?: boolean;
+  onAddClick?: () => void;
 }
 
-export function TopBar({ title, greeting, hasNotification = true }: TopBarProps) {
+export function TopBar({ title, greeting, hasNotification = true, onAddClick }: TopBarProps) {
   return (
     <header className="flex items-center justify-between border-b border-border bg-background px-8 py-4">
       <div>
@@ -21,16 +22,18 @@ export function TopBar({ title, greeting, hasNotification = true }: TopBarProps)
           <input
             type="text"
             placeholder="Rechercher une carte, un set, un artiste..."
-            className="w-120 rounded-full border border-border bg-card py-2 pl-9 pr-12 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+            className="w-72 rounded-full border border-border bg-card py-2 pl-9 pr-12 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
           <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded border border-border bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
             ⌘K
           </kbd>
         </div>
 
+
         {/* Ajouter */}
         <button
           type="button"
+          onClick={onAddClick}
           className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         >
           <Plus size={16} />

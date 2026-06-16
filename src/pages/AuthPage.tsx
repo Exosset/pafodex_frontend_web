@@ -48,7 +48,11 @@ export default function AuthPage() {
         return;
       }
 
+
+      console.log("AuthPage: ",result.apiToken)
+
       // 4. Redirection vers la page d'accueil
+      localStorage.setItem('apiToken', result.apiToken)
       navigate("/home");
     } catch {
       setApiError("Impossible de contacter le serveur. Réessaie plus tard.");
@@ -136,7 +140,7 @@ export default function AuthPage() {
               label={mode === "login" ? "E-mail" : "E-mail"}
               name="mail"
               type={mode === "login" ? "text" : "email"}
-              placeholder={mode === "login" ? "sacha@pokemon.fr ou Sacha_du_Bourg" : "sacha@pokemon.fr"}
+              placeholder={mode === "login" ? "sacha@pokemon.fr" : "sacha@pokemon.fr"}
               icon={<Mail size={16} />}
               error={errors.mail}
             />
