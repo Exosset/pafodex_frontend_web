@@ -2,23 +2,25 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Loader2 } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { fetchGameTypes } from "@/services/gameTypeService";
-import { createCard } from "@/services/cardService";
+import { createSet } from "@/services/setService";
 import type { GameType } from "@/types/gameType";
-import type { Card } from "@/types/card";
+import type { Set } from "@/types/set";
 
-export interface AddCardModalProps {
+export interface AddSetModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCardCreated: (card: Card) => void;
+  onSetCreated: (set: Set) => void;
 }
 
-export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalProps) {
+const DEFAULT_COLOR = "#6265ED";
+
+export function AddSetModal({ isOpen, onClose, onSetCreated }: AddSetModalProps) {
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
   const [isLoadingGameTypes, setIsLoadingGameTypes] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [color, setColor] = useState(DEFAULT_COLOR);
 
-  // Charge la liste des jeux à l'ouverture de la modal
   useEffect(() => {
     if (!isOpen) return;
 
@@ -52,32 +54,30 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
 
     const data = Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string, string>;
 
-    if (!data.name.trim() || !data.extension.trim() || !data.number.trim() || !data.gameTypeId) {
+    if (!data.name.trim() || !data.gameTypeId) {
       setError("Merci de remplir tous les champs obligatoires.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const newCard = await createCard({
+      const newSet = await createSet({
         name: data.name,
-        extension: data.extension,
-        number: data.number,
-        image: data.image ?? "",
+        color: data.color || DEFAULT_COLOR,
         gameTypeId: Number(data.gameTypeId),
       });
 
-      onCardCreated(newCard);
+      onSetCreated(newSet);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible d'ajouter la carte.");
+      setError(err instanceof Error ? err.message : "Impossible de créer la collection.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Ajouter une carte">
+    <Modal isOpen={isOpen} onClose={onClose} title="Ajouter une collection">
       {error && (
         <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
@@ -86,64 +86,41 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
-          <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
+          <label htmlFor="set-name" className="mb-1.5 block text-sm font-medium text-foreground">
             Nom
           </label>
           <input
-            id="name"
+            id="set-name"
             name="name"
             type="text"
-            placeholder="Charizard ex"
+            placeholder="Pokémon 151"
             className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="extension" className="mb-1.5 block text-sm font-medium text-foreground">
-              Extension
-            </label>
-            <input
-              id="extension"
-              name="extension"
-              type="text"
-              placeholder="151"
-              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div>
-            <label htmlFor="number" className="mb-1.5 block text-sm font-medium text-foreground">
-              Numéro
-            </label>
-            <input
-              id="number"
-              name="number"
-              type="text"
-              placeholder="199/165"
-              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-
         <div>
-          <label htmlFor="image" className="mb-1.5 block text-sm font-medium text-foreground">
-            Image (URL)
+          <label htmlFor="set-color" className="mb-1.5 block text-sm font-medium text-foreground">
+            Couleur
           </label>
-          <input
-            id="image"
-            name="image"
-            type="url"
-            placeholder="https://example.com/image.png"
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-          />
+          <div className="flex items-center gap-3">
+            <input
+              id="set-color"
+              name="color"
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-10 w-14 cursor-pointer rounded-lg border border-border bg-card"
+            />
+            <span className="text-sm text-muted-foreground">{color}</span>
+          </div>
         </div>
 
         <div>
-          <label htmlFor="gameTypeId" className="mb-1.5 block text-sm font-medium text-foreground">
+          <label htmlFor="set-gameTypeId" className="mb-1.5 block text-sm font-medium text-foreground">
             Jeu
           </label>
           <select
-            id="gameTypeId"
+            id="set-gameTypeId"
             name="gameTypeId"
             disabled={isLoadingGameTypes || gameTypes.length === 0}
             defaultValue=""
@@ -166,7 +143,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
           {!isLoadingGameTypes && gameTypes.length === 0 && (
             <p className="mt-1.5 text-xs text-muted-foreground">
               Aucun type de jeu n'est encore configuré. Contacte un administrateur pour en ajouter avant
-              de pouvoir créer une carte.
+              de pouvoir créer une collection.
             </p>
           )}
         </div>
@@ -185,7 +162,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-            Ajouter
+            Créer
           </button>
         </div>
       </form>

@@ -8,3 +8,9 @@ export interface Set {
         nom: string;
       };
 }
+
+export interface CreateSetPayload {
+    name: string;
+    color: string;
+    gameTypeId: number;
+}

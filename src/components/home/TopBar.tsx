@@ -1,13 +1,12 @@
-import { Search, Plus, Bell } from "lucide-react";
+import { Search, Bell } from "lucide-react";
 
 export interface TopBarProps {
   title: string;
   greeting: string;
   hasNotification?: boolean;
-  onAddClick?: () => void;
 }
 
-export function TopBar({ title, greeting, hasNotification = true, onAddClick }: TopBarProps) {
+export function TopBar({ title, greeting, hasNotification = true }: TopBarProps) {
   return (
     <header className="flex items-center justify-between border-b border-border bg-background px-8 py-4">
       <div>
@@ -29,17 +28,6 @@ export function TopBar({ title, greeting, hasNotification = true, onAddClick }: 
           </kbd>
         </div>
 
-
-        {/* Ajouter */}
-        <button
-          type="button"
-          onClick={onAddClick}
-          className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          <Plus size={16} />
-          Ajouter
-        </button>
-
         {/* Notifications */}
         <button
           type="button"
@@ -56,6 +44,7 @@ export function TopBar({ title, greeting, hasNotification = true, onAddClick }: 
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-foreground">
           A
         </div>
+        
       </div>
     </header>
   );

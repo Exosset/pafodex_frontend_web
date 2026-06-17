@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { Sidebar } from "@/components/home/Sidebar";
 import { TopBar } from "@/components/home/TopBar";
-import { SetCard } from "@/components/home/SetCard";
 import { LibraryCard } from "@/components/home/LibraryCard";
 import { PaginationControls } from "@/components/home/PaginationControls";
 import { AddCardModal } from "@/components/home/AddCardModal";
+import { AddSetModal } from "@/components/home/AddSetModal";
 import { fetchCurrentUser } from "@/services/userService";
 import { fetchCurrentUserCardSet } from "@/services/cardSetService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
 import type { Set } from "@/types/set";
+import { SetCard } from "@/components/home/SetCard";
 
 export default function HomePage() {
   const [user, setUser] = useState<CurrentUserProfile | null>(null);
@@ -27,8 +28,9 @@ export default function HomePage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
-  // ----- Modal d'ajout de carte -----
+  // ----- Modals -----
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
+  const [isAddSetOpen, setIsAddSetOpen] = useState(false);
 
   useEffect(() => {
     fetchCurrentUser()
@@ -71,14 +73,13 @@ export default function HomePage() {
     };
   }, [page]);
 
-  function handleAddCard() {
-    setIsAddCardOpen(true);
-  }
-
   function handleCardCreated(newCard: Card) {
-    // Ajoute la carte créée en tête de liste, sans refaire d'appel réseau
     setCards((prev) => [newCard, ...prev]);
     setCardsTotal((prev) => prev + 1);
+  }
+
+  function handleSetCreated(newSet: Set) {
+    setSets((prev) => [newSet, ...prev]);
   }
 
   return (
@@ -90,11 +91,7 @@ export default function HomePage() {
 
       {/* pl-64 = compense la largeur fixe de la Sidebar (w-64) pour ne pas être recouvert */}
       <div className="flex-1 pl-64">
-        <TopBar
-          title="Tableau de bord"
-          greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`}
-          onAddClick={handleAddCard}
-        />
+        <TopBar title="Tableau de bord" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} />
 
         <main className="px-8 py-6">
           {dataError && (
@@ -106,11 +103,23 @@ export default function HomePage() {
           {/* ----- Section Collections (sets) ----- */}
           <section>
             <div className="flex items-end justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight">Mes collections</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Cliquez sur une collection pour explorer ses cartes.
-                </p>
+              <div className="flex items-center gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-semibold tracking-tight">Mes collections</h2>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddSetOpen(true)}
+                      aria-label="Ajouter une collection"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Cliquez sur une collection pour explorer ses cartes.
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -134,10 +143,18 @@ export default function HomePage() {
 
           {/* ----- Section Bibliothèque (cards, paginées par 25) ----- */}
           <section className="mt-12">
-            <h2 className="text-2xl font-semibold tracking-tight">Bibliothèque</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {cardsTotal} cartes possédées
-            </p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-semibold tracking-tight">Bibliothèque</h2>
+              <button
+                type="button"
+                onClick={() => setIsAddCardOpen(true)}
+                aria-label="Ajouter une carte"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{cardsTotal} cartes possédées</p>
 
             {isLoadingData ? (
               <p className="mt-6 text-sm text-muted-foreground">Chargement des cartes...</p>
@@ -160,6 +177,12 @@ export default function HomePage() {
         isOpen={isAddCardOpen}
         onClose={() => setIsAddCardOpen(false)}
         onCardCreated={handleCardCreated}
+      />
+
+      <AddSetModal
+        isOpen={isAddSetOpen}
+        onClose={() => setIsAddSetOpen(false)}
+        onSetCreated={handleSetCreated}
       />
     </div>
   );
