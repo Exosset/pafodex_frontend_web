@@ -1,4 +1,4 @@
-import { Search, Plus, Bell } from "lucide-react";
+import { Search, Bell } from "lucide-react";
 
 export interface TopBarProps {
   title: string;
@@ -21,21 +21,12 @@ export function TopBar({ title, greeting, hasNotification = true }: TopBarProps)
           <input
             type="text"
             placeholder="Rechercher une carte, un set, un artiste..."
-            className="w-120 rounded-full border border-border bg-card py-2 pl-9 pr-12 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+            className="w-72 rounded-full border border-border bg-card py-2 pl-9 pr-12 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
           <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded border border-border bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
             ⌘K
           </kbd>
         </div>
-
-        {/* Ajouter */}
-        <button
-          type="button"
-          className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          <Plus size={16} />
-          Ajouter
-        </button>
 
         {/* Notifications */}
         <button
@@ -53,6 +44,7 @@ export function TopBar({ title, greeting, hasNotification = true }: TopBarProps)
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-foreground">
           A
         </div>
+        
       </div>
     </header>
   );

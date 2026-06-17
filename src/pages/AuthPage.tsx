@@ -1,9 +1,10 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Eye, EyeOff, Mail, Lock, User2, Sparkles, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User2, Loader2 } from "lucide-react";
 import { buildAuthConnexion, buildAuthInscription } from "../mappers/authMapper";
 import { validateLogin, validateRegister, type ValidationErrors } from "../validators/authValidator";
 import { login, register } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import logo from "@/assets/Logo.png";
 
 type Mode = "login" | "register";
 
@@ -48,7 +49,11 @@ export default function AuthPage() {
         return;
       }
 
+
+      console.log("AuthPage: ",result.apiToken)
+
       // 4. Redirection vers la page d'accueil
+      localStorage.setItem('apiToken', result.apiToken)
       navigate("/home");
     } catch {
       setApiError("Impossible de contacter le serveur. Réessaie plus tard.");
@@ -70,8 +75,8 @@ export default function AuthPage() {
         <div className="mx-auto w-full max-w-sm">
           {/* Logo */}
           <div className="mb-10 flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles size={18} />
+            <div className="flex h-9 w-9 items-center justify-center text-primary-foreground">
+              <img src={logo} alt="Deckhaus" className="h-9 w-9 rounded-full object-cover" />
             </div>
             <span className="text-lg font-semibold tracking-tight">Pafodex</span>
           </div>
@@ -136,7 +141,7 @@ export default function AuthPage() {
               label={mode === "login" ? "E-mail" : "E-mail"}
               name="mail"
               type={mode === "login" ? "text" : "email"}
-              placeholder={mode === "login" ? "sacha@pokemon.fr ou Sacha_du_Bourg" : "sacha@pokemon.fr"}
+              placeholder={mode === "login" ? "sacha@pokemon.fr" : "sacha@pokemon.fr"}
               icon={<Mail size={16} />}
               error={errors.mail}
             />
