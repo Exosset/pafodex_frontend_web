@@ -12,10 +12,14 @@ import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
 import type { Set } from "@/types/set";
 import { SetCard } from "@/components/home/SetCard";
+import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
   const [user, setUser] = useState<CurrentUserProfile | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+
+  const navigate = useNavigate();
+
 
   // ----- Sets (collections) -----
   const [sets, setSets] = useState<Set[]>([]);
@@ -37,6 +41,9 @@ export default function HomePage() {
       .then(setUser)
       .catch((err) => {
         console.error(err);
+        localStorage.setItem('apiToken', "")
+        navigate("/");
+        
         // TODO: rediriger vers /login si le token est invalide/expiré
       })
       .finally(() => setIsLoadingUser(false));
@@ -177,6 +184,7 @@ export default function HomePage() {
         isOpen={isAddCardOpen}
         onClose={() => setIsAddCardOpen(false)}
         onCardCreated={handleCardCreated}
+        //user = {user}
       />
 
       <AddSetModal

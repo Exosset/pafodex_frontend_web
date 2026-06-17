@@ -1,10 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, Check } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { fetchGameTypes } from "@/services/gameTypeService";
+import { fetchCurrentUser } from "@/services/userService";
 import { createCard } from "@/services/cardService";
+import { searchScryfallCards } from "@/services/cardService";
+import { mapperAPIScryfall } from "@/mappers/apiMapper";
+import { validateCard, type CardValidationErrors } from "@/validators/cardValidator";
+import { buildCardAdd } from "@/mappers/cardMapper";
 import type { GameType } from "@/types/gameType";
 import type { Card } from "@/types/card";
+import type { ScryfallCard } from "@/types/card";
 
 export interface AddCardModalProps {
   isOpen: boolean;
@@ -12,61 +18,152 @@ export interface AddCardModalProps {
   onCardCreated: (card: Card) => void;
 }
 
+// Nom exact du jeu Magic tel que renvoyé par votre backend /game-types
+const MTG_GAME_NAME = "Magic The Gathering";
+
+// Valeurs de repli quand aucune API externe n'est disponible (jeu différent de Magic)
+const FALLBACK_EXTENSION = "—";
+const FALLBACK_NUMBER = "—";
+const FALLBACK_IMAGE = "";
+
 export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalProps) {
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
   const [isLoadingGameTypes, setIsLoadingGameTypes] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<CardValidationErrors>({});
 
-  // Charge la liste des jeux à l'ouverture de la modal
+  const [selectedGameTypeId, setSelectedGameTypeId] = useState("");
+  const [nameValue, setNameValue] = useState("");
+
+  // Champs renseignés automatiquement (Scryfall ou valeurs de repli), invisibles dans l'UI
+  const [extension, setExtension] = useState("");
+  const [number, setNumber] = useState("");
+  const [image, setImage] = useState("");
+  const [hasSelectedExternalCard, setHasSelectedExternalCard] = useState(false);
+
+  const [libraryId, setLibraryId] = useState<number | null>(null);
+
+  // ----- Recherche Scryfall (Magic uniquement pour l'instant) -----
+  const [searchResults, setSearchResults] = useState<ScryfallCard[]>([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  // gameType actuellement sélectionné dans le menu déroulant (objet complet, pas juste l'id)
+  const selectedGameType = gameTypes.find((g) => String(g.id) === selectedGameTypeId);
+  const isMtgSelected = selectedGameType?.name === MTG_GAME_NAME;
+
+  // Charge la liste des jeux + le profil utilisateur (pour libraryId) à l'ouverture
   useEffect(() => {
     if (!isOpen) return;
 
     let isCancelled = false;
 
-    async function loadGameTypes() {
+    async function loadInitialData() {
       setIsLoadingGameTypes(true);
       try {
-        const result = await fetchGameTypes();
-        if (!isCancelled) setGameTypes(result);
+        const [gameTypesResult, userResult] = await Promise.all([
+          fetchGameTypes(),
+          fetchCurrentUser(),
+        ]);
+        if (isCancelled) return;
+        setGameTypes(gameTypesResult);
+        setLibraryId(userResult.id);
       } catch (err) {
         if (!isCancelled) {
           console.error(err);
-          setError("Impossible de charger la liste des jeux.");
+          setError("Impossible de charger les informations nécessaires.");
         }
       } finally {
         if (!isCancelled) setIsLoadingGameTypes(false);
       }
     }
 
-    loadGameTypes();
+    loadInitialData();
 
     return () => {
       isCancelled = true;
     };
   }, [isOpen]);
 
+  async function handleSearch() {
+    if (!nameValue.trim() || !isMtgSelected) return;
+
+    setIsSearching(true);
+    setSearchError(null);
+    try {
+      const results = await searchScryfallCards(nameValue);
+      setSearchResults(results);
+      setIsSearchOpen(true);
+    } catch (err) {
+      console.error(err);
+      setSearchError("Impossible d'effectuer la recherche.");
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  function handleSelectResult(card: ScryfallCard) {
+    if (!selectedGameType || libraryId === null) return;
+
+    const mapped = mapperAPIScryfall(card, selectedGameType.id, libraryId);
+
+    setNameValue(mapped.name);
+    setExtension(mapped.extension);
+    setNumber(mapped.number);
+    setImage(mapped.image);
+    setHasSelectedExternalCard(true);
+    setIsSearchOpen(false);
+    setSearchResults([]);
+  }
+
+  function handleGameTypeChange(value: string) {
+    setSelectedGameTypeId(value);
+    setSearchResults([]);
+    setIsSearchOpen(false);
+    setHasSelectedExternalCard(false);
+  }
+
+  function handleNameChange(value: string) {
+    setNameValue(value);
+    setIsSearchOpen(false);
+    // Si l'utilisateur modifie le nom manuellement après une sélection Scryfall,
+    // on ne sait plus garantir que extension/number/image correspondent encore.
+    if (hasSelectedExternalCard) {
+      setHasSelectedExternalCard(false);
+    }
+  }
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
-    const data = Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string, string>;
+    const validationErrors = validateCard(nameValue, selectedGameTypeId);
 
-    if (!data.name.trim() || !data.extension.trim() || !data.number.trim() || !data.gameTypeId) {
-      setError("Merci de remplir tous les champs obligatoires.");
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+    setFieldErrors({});
+
+    if (libraryId === null) {
+      setError("Impossible de déterminer ta bibliothèque. Réessaie plus tard.");
       return;
     }
 
+    const payload = buildCardAdd(
+      nameValue,
+      hasSelectedExternalCard ? extension : FALLBACK_EXTENSION,
+      hasSelectedExternalCard ? number : FALLBACK_NUMBER,
+      hasSelectedExternalCard ? image : FALLBACK_IMAGE,
+      Number(selectedGameTypeId),
+      libraryId
+    );
+
     setIsSubmitting(true);
     try {
-      const newCard = await createCard({
-        name: data.name,
-        extension: data.extension,
-        number: data.number,
-        image: data.image ?? "",
-        gameTypeId: Number(data.gameTypeId),
-      });
-
+      const newCard = await createCard(payload);
       onCardCreated(newCard);
       onClose();
     } catch (err) {
@@ -85,69 +182,19 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div>
-          <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
-            Nom
-          </label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            placeholder="Charizard ex"
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="extension" className="mb-1.5 block text-sm font-medium text-foreground">
-              Extension
-            </label>
-            <input
-              id="extension"
-              name="extension"
-              type="text"
-              placeholder="151"
-              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div>
-            <label htmlFor="number" className="mb-1.5 block text-sm font-medium text-foreground">
-              Numéro
-            </label>
-            <input
-              id="number"
-              name="number"
-              type="text"
-              placeholder="199/165"
-              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="image" className="mb-1.5 block text-sm font-medium text-foreground">
-            Image (URL)
-          </label>
-          <input
-            id="image"
-            name="image"
-            type="url"
-            placeholder="https://example.com/image.png"
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-          />
-        </div>
-
+        {/* Jeu — en premier, conditionne la recherche Scryfall */}
         <div>
           <label htmlFor="gameTypeId" className="mb-1.5 block text-sm font-medium text-foreground">
             Jeu
           </label>
           <select
             id="gameTypeId"
-            name="gameTypeId"
+            value={selectedGameTypeId}
+            onChange={(e) => handleGameTypeChange(e.target.value)}
             disabled={isLoadingGameTypes || gameTypes.length === 0}
-            defaultValue=""
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+            className={`w-full rounded-lg border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 ${
+              fieldErrors.gameTypeId ? "border-destructive" : "border-border"
+            }`}
           >
             <option value="" disabled>
               {isLoadingGameTypes
@@ -162,12 +209,90 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
               </option>
             ))}
           </select>
+          {fieldErrors.gameTypeId && (
+            <p className="mt-1 text-xs text-destructive">{fieldErrors.gameTypeId}</p>
+          )}
+        </div>
 
-          {!isLoadingGameTypes && gameTypes.length === 0 && (
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Aucun type de jeu n'est encore configuré. Contacte un administrateur pour en ajouter avant
-              de pouvoir créer une carte.
+        {/* Nom — avec recherche Scryfall intégrée pour Magic */}
+        <div className="relative">
+          <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
+            Nom
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="name"
+              type="text"
+              value={nameValue}
+              onChange={(e) => handleNameChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && isMtgSelected) {
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
+              placeholder="Charizard ex"
+              autoComplete="off"
+              className={`flex-1 rounded-lg border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring ${
+                fieldErrors.name ? "border-destructive" : "border-border"
+              }`}
+            />
+            {isMtgSelected && (
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={isSearching || !nameValue.trim()}
+                className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                Rechercher
+              </button>
+            )}
+          </div>
+          {fieldErrors.name && <p className="mt-1 text-xs text-destructive">{fieldErrors.name}</p>}
+
+          {hasSelectedExternalCard && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-success">
+              <Check size={14} />
+              Carte trouvée sur Scryfall — édition et numéro pré-remplis automatiquement.
             </p>
+          )}
+
+          {searchError && <p className="mt-1.5 text-xs text-destructive">{searchError}</p>}
+
+          {/* Menu déroulant des résultats, positionné sous le champ Nom */}
+          {isSearchOpen && (
+            <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+              {searchResults.length === 0 ? (
+                <p className="px-3 py-2.5 text-sm text-muted-foreground">Aucune carte trouvée.</p>
+              ) : (
+                <ul className="py-1">
+                  {searchResults.map((result) => (
+                    <li key={result.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectResult(result)}
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-secondary"
+                      >
+                        <span className="flex items-center gap-3">
+                          {result.image_uris?.normal && (
+                            <img
+                              src={result.image_uris.normal}
+                              alt={result.name}
+                              className="h-10 w-auto rounded"
+                            />
+                          )}
+                          <span className="font-semibold">{result.name}</span>
+                        </span>
+                        <span className="whitespace-nowrap text-sm text-muted-foreground">
+                          {result.set.toUpperCase()} {result.collector_number}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </div>
 
@@ -181,7 +306,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
           </button>
           <button
             type="submit"
-            disabled={isSubmitting || isLoadingGameTypes || gameTypes.length === 0}
+            disabled={isSubmitting}
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {isSubmitting && <Loader2 size={16} className="animate-spin" />}

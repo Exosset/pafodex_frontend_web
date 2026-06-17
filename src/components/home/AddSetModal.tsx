@@ -3,6 +3,8 @@ import { Loader2 } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { fetchGameTypes } from "@/services/gameTypeService";
 import { createSet } from "@/services/setService";
+import { buildSetAdd } from "@/mappers/setMappers";
+import { validateSet, type SetValidationErrors } from "@/validators/setValidator";
 import type { GameType } from "@/types/gameType";
 import type { Set } from "@/types/set";
 
@@ -19,6 +21,7 @@ export function AddSetModal({ isOpen, onClose, onSetCreated }: AddSetModalProps)
   const [isLoadingGameTypes, setIsLoadingGameTypes] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<SetValidationErrors>({});
   const [color, setColor] = useState(DEFAULT_COLOR);
 
   useEffect(() => {
@@ -53,20 +56,24 @@ export function AddSetModal({ isOpen, onClose, onSetCreated }: AddSetModalProps)
     setError(null);
 
     const data = Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string, string>;
+    const colorValue = data.color || DEFAULT_COLOR;
 
-    if (!data.name.trim() || !data.gameTypeId) {
-      setError("Merci de remplir tous les champs obligatoires.");
+    // 1. Validation
+    const validationErrors = validateSet(data.name, colorValue, data.gameTypeId);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
       return;
     }
+    setFieldErrors({});
 
+    // 2. Construction du payload via le mapper
+    const payload = buildSetAdd(data.name, colorValue, Number(data.gameTypeId))
+
+    // 3. Appel API
     setIsSubmitting(true);
     try {
-      const newSet = await createSet({
-        name: data.name,
-        color: data.color || DEFAULT_COLOR,
-        gameTypeId: Number(data.gameTypeId),
-      });
-
+      const newSet = await createSet(payload);
       onSetCreated(newSet);
       onClose();
     } catch (err) {
@@ -94,8 +101,11 @@ export function AddSetModal({ isOpen, onClose, onSetCreated }: AddSetModalProps)
             name="name"
             type="text"
             placeholder="Pokémon 151"
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+            className={`w-full rounded-lg border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring ${
+              fieldErrors.name ? "border-destructive" : "border-border"
+            }`}
           />
+          {fieldErrors.name && <p className="mt-1 text-xs text-destructive">{fieldErrors.name}</p>}
         </div>
 
         <div>
@@ -113,6 +123,7 @@ export function AddSetModal({ isOpen, onClose, onSetCreated }: AddSetModalProps)
             />
             <span className="text-sm text-muted-foreground">{color}</span>
           </div>
+          {fieldErrors.color && <p className="mt-1 text-xs text-destructive">{fieldErrors.color}</p>}
         </div>
 
         <div>
@@ -124,7 +135,9 @@ export function AddSetModal({ isOpen, onClose, onSetCreated }: AddSetModalProps)
             name="gameTypeId"
             disabled={isLoadingGameTypes || gameTypes.length === 0}
             defaultValue=""
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+            className={`w-full rounded-lg border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 ${
+              fieldErrors.gameTypeId ? "border-destructive" : "border-border"
+            }`}
           >
             <option value="" disabled>
               {isLoadingGameTypes
@@ -139,6 +152,10 @@ export function AddSetModal({ isOpen, onClose, onSetCreated }: AddSetModalProps)
               </option>
             ))}
           </select>
+
+          {fieldErrors.gameTypeId && (
+            <p className="mt-1 text-xs text-destructive">{fieldErrors.gameTypeId}</p>
+          )}
 
           {!isLoadingGameTypes && gameTypes.length === 0 && (
             <p className="mt-1.5 text-xs text-muted-foreground">

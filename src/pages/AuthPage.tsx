@@ -1,9 +1,10 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Eye, EyeOff, Mail, Lock, User2, Sparkles, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User2, Loader2 } from "lucide-react";
 import { buildAuthConnexion, buildAuthInscription } from "../mappers/authMapper";
 import { validateLogin, validateRegister, type ValidationErrors } from "../validators/authValidator";
 import { login, register } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import logo from "@/assets/Logo.png";
 
 type Mode = "login" | "register";
 
@@ -74,8 +75,8 @@ export default function AuthPage() {
         <div className="mx-auto w-full max-w-sm">
           {/* Logo */}
           <div className="mb-10 flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles size={18} />
+            <div className="flex h-9 w-9 items-center justify-center text-primary-foreground">
+              <img src={logo} alt="Deckhaus" className="h-9 w-9 rounded-full object-cover" />
             </div>
             <span className="text-lg font-semibold tracking-tight">Pafodex</span>
           </div>

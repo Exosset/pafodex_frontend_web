@@ -5,7 +5,7 @@ export interface Set {
       color: string;
       gameType: {
         id: number;
-        nom: string;
+        name: string;
       };
 }
 

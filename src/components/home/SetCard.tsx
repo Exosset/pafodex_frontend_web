@@ -11,10 +11,10 @@ export function SetCard({ set }: { set: Set }) {
       {/* Bandeau coloré */}
       <div
         className="relative flex h-32 items-start justify-between p-4"
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: color ?? "#e8686f" }}
       >
         <span className="rounded-full bg-card/90 px-2.5 py-1 text-xs font-semibold text-foreground">
-          {gameType.nom}
+          {gameType.name}
         </span>
       </div>
 

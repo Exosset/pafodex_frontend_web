@@ -1,4 +1,5 @@
 import { Home, Layers, BookOpen, Settings } from "lucide-react";
+import logo from "@/assets/Logo.png";
 
 export interface SidebarProps {
   activeItem?: "accueil" | "bibliotheque" | "collections" | "parametres";
@@ -18,7 +19,7 @@ export function Sidebar({ activeItem = "accueil", userName}: SidebarProps) {
       <div>
         {/* Logo */}
         <div className="mb-8 flex items-center gap-3 px-2">
-          <div className="h-9 w-9 rounded-full bg-secondary" />
+          <img src={logo} alt="Deckhaus" className="h-9 w-9 rounded-full object-cover" />
           <div>
             <p className="text-base font-semibold leading-tight text-foreground">Deckhaus</p>
             <p className="text-xs text-muted-foreground">TCG Manager</p>

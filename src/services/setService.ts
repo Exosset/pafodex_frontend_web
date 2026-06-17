@@ -6,7 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 export async function createSet(payload: CreateSetPayload): Promise<Set> {
     const token = localStorage.getItem("apiToken");
 
-    const res = await fetch(`${API_URL}/sets`, {
+    const res = await fetch(`${API_URL}api/me/sets`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
