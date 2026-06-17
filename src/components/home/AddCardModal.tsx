@@ -3,14 +3,12 @@ import { Loader2, Search, Check } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { fetchGameTypes } from "@/services/gameTypeService";
 import { fetchCurrentUser } from "@/services/userService";
-import { createCard } from "@/services/cardService";
-import { searchScryfallCards } from "@/services/cardService";
-import { mapperAPIScryfall } from "@/mappers/apiMapper";
-import { validateCard, type CardValidationErrors } from "@/validators/cardValidator";
+import { createCard, searchScryfallCards, searchTcgdexCards } from "@/services/cardService";
+import { mapperAPIScryfall, mapperAPITCGdex } from "@/mappers/apiMapper";
 import { buildCardAdd } from "@/mappers/cardMapper";
+import { validateCard, type CardValidationErrors } from "@/validators/cardValidator";
 import type { GameType } from "@/types/gameType";
-import type { Card } from "@/types/card";
-import type { ScryfallCard } from "@/types/card";
+import type { Card, ScryfallCard, TcgdexCard } from "@/types/card";
 
 export interface AddCardModalProps {
   isOpen: boolean;
@@ -18,13 +16,14 @@ export interface AddCardModalProps {
   onCardCreated: (card: Card) => void;
 }
 
-// Nom exact du jeu Magic tel que renvoyé par votre backend /game-types
+// Noms exacts des jeux tels que renvoyés par votre backend /game-types
 const MTG_GAME_NAME = "Magic The Gathering";
+const POKEMON_GAME_NAME = "Pokémon";
 
-// Valeurs de repli quand aucune API externe n'est disponible (jeu différent de Magic)
-const FALLBACK_EXTENSION = "—";
-const FALLBACK_NUMBER = "—";
-const FALLBACK_IMAGE = "";
+// Résultat de recherche générique, peu importe l'API d'origine
+type ExternalSearchResult =
+  | { source: "MAGIC"; card: ScryfallCard }
+  | { source: "POKEMON"; card: TcgdexCard };
 
 export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalProps) {
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
@@ -36,7 +35,8 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   const [selectedGameTypeId, setSelectedGameTypeId] = useState("");
   const [nameValue, setNameValue] = useState("");
 
-  // Champs renseignés automatiquement (Scryfall ou valeurs de repli), invisibles dans l'UI
+  // Champs renseignés automatiquement par l'API externe, invisibles dans l'UI.
+  // Aucune valeur de repli ici : c'est le mapper buildCardAdd qui s'en occupe.
   const [extension, setExtension] = useState("");
   const [number, setNumber] = useState("");
   const [image, setImage] = useState("");
@@ -44,8 +44,8 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
 
   const [libraryId, setLibraryId] = useState<number | null>(null);
 
-  // ----- Recherche Scryfall (Magic uniquement pour l'instant) -----
-  const [searchResults, setSearchResults] = useState<ScryfallCard[]>([]);
+  // ----- Recherche externe (Scryfall pour Magic, TCGdex pour Pokémon) -----
+  const [searchResults, setSearchResults] = useState<ExternalSearchResult[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -53,6 +53,8 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   // gameType actuellement sélectionné dans le menu déroulant (objet complet, pas juste l'id)
   const selectedGameType = gameTypes.find((g) => String(g.id) === selectedGameTypeId);
   const isMtgSelected = selectedGameType?.name === MTG_GAME_NAME;
+  const isPokemonSelected = selectedGameType?.name === POKEMON_GAME_NAME;
+  const hasExternalSearch = isMtgSelected || isPokemonSelected;
 
   // Charge la liste des jeux + le profil utilisateur (pour libraryId) à l'ouverture
   useEffect(() => {
@@ -88,13 +90,18 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   }, [isOpen]);
 
   async function handleSearch() {
-    if (!nameValue.trim() || !isMtgSelected) return;
+    if (!nameValue.trim() || !hasExternalSearch) return;
 
     setIsSearching(true);
     setSearchError(null);
     try {
-      const results = await searchScryfallCards(nameValue);
-      setSearchResults(results);
+      if (isMtgSelected) {
+        const results = await searchScryfallCards(nameValue);
+        setSearchResults(results.map((card) => ({ source: "MAGIC" as const, card })));
+      } else if (isPokemonSelected) {
+        const results = await searchTcgdexCards(nameValue);
+        setSearchResults(results.map((card) => ({ source: "POKEMON" as const, card })));
+      }
       setIsSearchOpen(true);
     } catch (err) {
       console.error(err);
@@ -104,10 +111,15 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
     }
   }
 
-  function handleSelectResult(card: ScryfallCard) {
+  function handleSelectResult(result: ExternalSearchResult) {
     if (!selectedGameType || libraryId === null) return;
 
-    const mapped = mapperAPIScryfall(card, selectedGameType.id, libraryId);
+    // Chaque API externe a son propre mapper, qui traduit sa réponse
+    // vers la forme AddCard attendue par le backend.
+    const mapped =
+      result.source === "MAGIC"
+        ? mapperAPIScryfall(result.card, selectedGameType.id, libraryId)
+        : mapperAPITCGdex(result.card, selectedGameType.id, libraryId);
 
     setNameValue(mapped.name);
     setExtension(mapped.extension);
@@ -128,7 +140,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   function handleNameChange(value: string) {
     setNameValue(value);
     setIsSearchOpen(false);
-    // Si l'utilisateur modifie le nom manuellement après une sélection Scryfall,
+    // Si l'utilisateur modifie le nom manuellement après une sélection externe,
     // on ne sait plus garantir que extension/number/image correspondent encore.
     if (hasSelectedExternalCard) {
       setHasSelectedExternalCard(false);
@@ -152,14 +164,17 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
       return;
     }
 
-    const payload = buildCardAdd(
-      nameValue,
-      hasSelectedExternalCard ? extension : FALLBACK_EXTENSION,
-      hasSelectedExternalCard ? number : FALLBACK_NUMBER,
-      hasSelectedExternalCard ? image : FALLBACK_IMAGE,
-      Number(selectedGameTypeId),
-      libraryId
-    );
+    // Construction du payload entièrement déléguée au mapper : la page ne fait
+    // que transmettre les valeurs brutes du formulaire, sans logique de repli ici.
+    const payload = buildCardAdd({
+      name: nameValue,
+      extension,
+      number,
+      image,
+      gameTypeId: Number(selectedGameTypeId),
+      libraryId,
+      hasSelectedExternalCard,
+    });
 
     setIsSubmitting(true);
     try {
@@ -182,7 +197,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {/* Jeu — en premier, conditionne la recherche Scryfall */}
+        {/* Jeu — en premier, conditionne quelle API externe utiliser */}
         <div>
           <label htmlFor="gameTypeId" className="mb-1.5 block text-sm font-medium text-foreground">
             Jeu
@@ -214,7 +229,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
           )}
         </div>
 
-        {/* Nom — avec recherche Scryfall intégrée pour Magic */}
+        {/* Nom — avec recherche externe intégrée pour Magic et Pokémon */}
         <div className="relative">
           <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
             Nom
@@ -226,7 +241,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
               value={nameValue}
               onChange={(e) => handleNameChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && isMtgSelected) {
+                if (e.key === "Enter" && hasExternalSearch) {
                   e.preventDefault();
                   handleSearch();
                 }
@@ -237,7 +252,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
                 fieldErrors.name ? "border-destructive" : "border-border"
               }`}
             />
-            {isMtgSelected && (
+            {hasExternalSearch && (
               <button
                 type="button"
                 onClick={handleSearch}
@@ -254,7 +269,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
           {hasSelectedExternalCard && (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-success">
               <Check size={14} />
-              Carte trouvée sur Scryfall — édition et numéro pré-remplis automatiquement.
+              Carte trouvée — édition et numéro pré-remplis automatiquement.
             </p>
           )}
 
@@ -267,29 +282,34 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
                 <p className="px-3 py-2.5 text-sm text-muted-foreground">Aucune carte trouvée.</p>
               ) : (
                 <ul className="py-1">
-                  {searchResults.map((result) => (
-                    <li key={result.id}>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectResult(result)}
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-secondary"
-                      >
-                        <span className="flex items-center gap-3">
-                          {result.image_uris?.normal && (
-                            <img
-                              src={result.image_uris.normal}
-                              alt={result.name}
-                              className="h-10 w-auto rounded"
-                            />
-                          )}
-                          <span className="font-semibold">{result.name}</span>
-                        </span>
-                        <span className="whitespace-nowrap text-sm text-muted-foreground">
-                          {result.set.toUpperCase()} {result.collector_number}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                  {searchResults.map((result) => {
+                    const isMagic = result.source === "MAGIC";
+                    const image = isMagic
+                      ? result.card.image_uris?.normal
+                      : result.card.image;
+                    const setLabel = isMagic ? result.card.set.toUpperCase() : result.card.set.name;
+                    const numberLabel = isMagic ? result.card.collector_number : result.card.localId;
+
+                    return (
+                      <li key={result.card.id}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectResult(result)}
+                          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-secondary"
+                        >
+                          <span className="flex items-center gap-3">
+                            {image && (
+                              <img src={image} alt={result.card.name} className="h-10 w-auto rounded" />
+                            )}
+                            <span className="font-semibold">{result.card.name}</span>
+                          </span>
+                          <span className="whitespace-nowrap text-sm text-muted-foreground">
+                            {setLabel} {numberLabel}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

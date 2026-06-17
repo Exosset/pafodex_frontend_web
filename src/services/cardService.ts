@@ -46,15 +46,13 @@ export async function createCard(payload: AddCard): Promise<Card> {
 
 export async function searchTcgdexCards(query: string): Promise<TcgdexCard[]> {
     if (!query.trim()) return [];
-
-    const res = await fetch(
-        `${TCGDEX_API_URL}/cards?name=${encodeURIComponent(query.trim())}`
-    );
-
+ 
+    const res = await fetch(`${TCGDEX_API_URL}/cards?name=${encodeURIComponent(query.trim())}`);
+ 
     if (!res.ok) {
         throw new Error("Impossible de contacter la base de cartes Pokémon.");
     }
-
+ 
     const data: TcgdexCard[] = await res.json();
     return data;
 }

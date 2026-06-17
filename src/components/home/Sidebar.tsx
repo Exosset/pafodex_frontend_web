@@ -1,4 +1,5 @@
 import { Home, Layers, BookOpen, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo.png";
 
 export interface SidebarProps {
@@ -7,13 +8,15 @@ export interface SidebarProps {
 }
 
 const navItems = [
-  { key: "accueil", label: "Accueil", icon: Home },
-  { key: "collections", label: "Collections", icon: Layers },
-  { key: "bibliotheque", label: "Bibliothèque", icon: BookOpen },
-  { key: "parametres", label: "Paramètres", icon: Settings },
+  { key: "accueil", label: "Accueil", icon: Home, path: "/home" },
+  { key: "collections", label: "Collections", icon: Layers, path: "/collections" },
+  { key: "bibliotheque", label: "Bibliothèque", icon: BookOpen, path: "/library" },
+  { key: "parametres", label: "Paramètres", icon: Settings, path: "/parametres" },
 ] as const;
 
-export function Sidebar({ activeItem = "accueil", userName}: SidebarProps) {
+export function Sidebar({ activeItem = "accueil", userName }: SidebarProps) {
+  const navigate = useNavigate();
+
   return (
     <aside className="fixed inset-y-0 left-0 flex h-screen w-64 flex-col justify-between border-r border-border bg-card px-4 py-5">
       <div>
@@ -28,12 +31,13 @@ export function Sidebar({ activeItem = "accueil", userName}: SidebarProps) {
 
         {/* Navigation */}
         <nav className="space-y-1">
-          {navItems.map(({ key, label, icon: Icon }) => {
+          {navItems.map(({ key, label, icon: Icon, path }) => {
             const isActive = key === activeItem;
             return (
               <button
                 key={key}
                 type="button"
+                onClick={() => navigate(path)}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-secondary text-foreground"

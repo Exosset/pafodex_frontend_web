@@ -1,5 +1,13 @@
 import type { AddCard } from "../types/card";
 
-export function buildCardAdd(name: string, extension: string, number: string, image: string, gameTypeId: number, libraryId: number): AddCard {
-    return { name, extension, number, image, gameTypeId, libraryId };
+export function buildCardAdd(input: AddCard): AddCard {
+    return {
+        name: input.name,
+        extension: input.extension,
+        number: input.number,
+        image: input.image,
+        gameTypeId: input.gameTypeId,
+        libraryId: input.libraryId,
+        hasSelectedExternalCard: input.hasSelectedExternalCard
+    };
 }
