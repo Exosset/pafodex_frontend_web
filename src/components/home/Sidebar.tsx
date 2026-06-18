@@ -9,7 +9,7 @@ export interface SidebarProps {
 
 const navItems = [
   { key: "accueil", label: "Accueil", icon: Home, path: "/home" },
-  { key: "collections", label: "Collections", icon: Layers, path: "/collections" },
+  { key: "collections", label: "Collections", icon: Layers, path: "/sets" },
   { key: "bibliotheque", label: "Bibliothèque", icon: BookOpen, path: "/library" },
   { key: "regles", label: "Règles", icon: ScrollText, path: "/rules" },
   { key: "parametres", label: "Paramètres", icon: Settings, path: "/parametres" },

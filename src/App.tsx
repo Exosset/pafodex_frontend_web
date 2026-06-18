@@ -12,9 +12,11 @@ function App() {
     <Routes>
       <Route path="/" element={<AuthPage />} />
       <Route path="/home" element={<HomePage />} />
+      <Route path="/sets" element={<CollectionsPage />} />
       <Route path="/set/:setId" element={<SetPage />} />
       <Route path="/card/:cardId" element={<CardDetailPage />} />
       <Route path="/rules" element={<RulesPage />} />
+      <Route path="/library" element={<LibraryPage />} />
     </Routes>
   )
 }

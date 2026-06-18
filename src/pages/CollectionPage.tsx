@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Sidebar } from "@/components/home/Sidebar";
 import { TopBar } from "@/components/home/TopBar";
@@ -9,6 +9,15 @@ import { fetchCurrentUserCardSet } from "@/services/cardSetService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Set } from "@/types/set";
 
+const GAME_TYPE_COLORS: Record<string, string> = {
+  Pokémon: "var(--color-pokemon)",
+  Pokemon: "var(--color-pokemon)",
+  "Magic The Gathering": "var(--color-mtg)",
+  Magic: "var(--color-mtg)",
+  "Yu-Gi-Oh!": "var(--color-yugioh)",
+  "One Piece": "var(--color-onepiece)",
+};
+
 export default function CollectionsPage() {
   const [user, setUser] = useState<CurrentUserProfile | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -17,6 +26,7 @@ export default function CollectionsPage() {
   const [sets, setSets] = useState<Set[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [selectedGameTypeIds, setSelectedGameTypeIds] = useState<number[]>([]);
 
   // ----- Modal d'ajout de set -----
   const [isAddSetOpen, setIsAddSetOpen] = useState(false);
@@ -61,6 +71,30 @@ export default function CollectionsPage() {
     };
   }, []);
 
+  const gameTypes = useMemo(() => {
+    return Array.from(
+      new Map(
+        sets.map((set) => [set.gameType.id, set.gameType])
+      ).values()
+    );
+  }, [sets]);
+
+  const filteredSets = useMemo(() => {
+    if (selectedGameTypeIds.length === 0) {
+      return sets;
+    }
+
+    return sets.filter((set) => selectedGameTypeIds.includes(set.gameType.id));
+  }, [selectedGameTypeIds, sets]);
+
+  function toggleGameType(gameTypeId: number) {
+    setSelectedGameTypeIds((prev) =>
+      prev.includes(gameTypeId)
+        ? prev.filter((id) => id !== gameTypeId)
+        : [...prev, gameTypeId]
+    );
+  }
+
   function handleSetCreated(newSet: Set) {
     setSets((prev) => [newSet, ...prev]);
   }
@@ -100,11 +134,41 @@ export default function CollectionsPage() {
               Cliquez sur une collection pour explorer ses cartes.
             </p>
 
+            {!isLoadingData && gameTypes.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-sm text-muted-foreground">Filtrer :</span>
+                {gameTypes.map((gameType) => {
+                  const isSelected = selectedGameTypeIds.includes(gameType.id);
+                  const accent = GAME_TYPE_COLORS[gameType.name] ?? "var(--color-primary)";
+
+                  return (
+                    <button
+                      key={gameType.id}
+                      type="button"
+                      onClick={() => toggleGameType(gameType.id)}
+                      style={{ backgroundColor: isSelected ? accent : "transparent", color: isSelected ? "white" : "inherit" }}
+                      className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                        isSelected
+                          ? "border-transparent shadow-sm"
+                          : "border-border hover:bg-secondary"
+                      }`}
+                    >
+                      {gameType.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {isLoadingData ? (
               <p className="mt-6 text-sm text-muted-foreground">Chargement...</p>
+            ) : filteredSets.length === 0 ? (
+              <p className="mt-6 text-sm text-muted-foreground">
+                Aucune collection ne correspond à ce filtre.
+              </p>
             ) : (
               <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {sets.map((set) => (
+                {filteredSets.map((set) => (
                   <SetCard key={set.id} set={set} />
                 ))}
               </div>

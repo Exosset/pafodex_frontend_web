@@ -30,6 +30,15 @@ export interface ScryfallCard {
     };
 }
 
+export interface TcgdexCard {
+    name: string;
+    set: {
+        name: string;
+    };
+    localId: string;
+    image?: string;
+}
+
 export interface ScryfallCardDetail {
     id: string;
     name: string;

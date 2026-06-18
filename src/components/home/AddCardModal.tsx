@@ -290,8 +290,10 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
                     const setLabel = isMagic ? result.card.set.toUpperCase() : result.card.set.name;
                     const numberLabel = isMagic ? result.card.collector_number : result.card.localId;
 
+                    const resultKey = `${result.source}-${result.card.name}-${setLabel}-${numberLabel}`;
+
                     return (
-                      <li key={result.card.id}>
+                      <li key={resultKey}>
                         <button
                           type="button"
                           onClick={() => handleSelectResult(result)}
