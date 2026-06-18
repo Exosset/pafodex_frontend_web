@@ -8,7 +8,8 @@ import { AddCardModal } from "@/components/home/AddCardModal";
 import { AddSetModal } from "@/components/home/AddSetModal";
 import { Modal } from "@/components/common/Modal";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { fetchCurrentUserCardSet } from "@/services/libraryService";
+import { fetchSearchCurrentLibrary } from "@/services/libraryService";
 import { addCardToSet } from "@/services/setService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
@@ -22,7 +23,6 @@ export default function HomePage() {
 
   const navigate = useNavigate();
 
-
   // ----- Sets (collections) -----
   const [sets, setSets] = useState<Set[]>([]);
 
@@ -33,6 +33,10 @@ export default function HomePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+
+  // ----- Recherche -----
+  const [searchQuery, setSearchQuery] = useState("");
+  const isSearching = searchQuery.trim() !== "";
 
   // ----- Modals -----
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
@@ -46,13 +50,16 @@ export default function HomePage() {
     fetchCurrentUser()
       .then(setUser)
       .catch(() => {
-        localStorage.setItem('apiToken', "")
+        localStorage.removeItem("apiToken");
         navigate("/");
       })
       .finally(() => setIsLoadingUser(false));
   }, []);
 
+  // Charge les données normales (sans recherche) — désactivé tant qu'une recherche est active
   useEffect(() => {
+    if (isSearching) return;
+
     let isCancelled = false;
 
     async function loadData() {
@@ -81,7 +88,48 @@ export default function HomePage() {
     return () => {
       isCancelled = true;
     };
-  }, [page]);
+  }, [page, isSearching]);
+
+  // Lance la recherche dès que searchQuery change (déclenché par Entrée dans TopBar)
+  useEffect(() => {
+    if (!isSearching) return;
+
+    let isCancelled = false;
+
+    async function runSearch() {
+      setIsLoadingData(true);
+      setDataError(null);
+
+      try {
+        const result = await fetchSearchCurrentLibrary(searchQuery.trim(), 1);
+        if (isCancelled) return;
+
+        setSets(result.sets);
+        setCards(result.cards);
+        // La réponse de recherche n'a pas de pagination : tous les résultats
+        // correspondants sont renvoyés en une seule fois.
+        setCardsTotal(result.cards.length);
+        setTotalPages(1);
+        setPage(1);
+      } catch (err) {
+        if (isCancelled) return;
+        console.error(err);
+        setDataError("Impossible d'effectuer la recherche.");
+      } finally {
+        if (!isCancelled) setIsLoadingData(false);
+      }
+    }
+
+    runSearch();
+
+    return () => {
+      isCancelled = true;
+    };
+}, [searchQuery]);
+
+  function handleSearch(query: string) {
+    setSearchQuery(query);
+  }
 
   function handleCardCreated(newCard: Card) {
     setCards((prev) => [newCard, ...prev]);
@@ -128,12 +176,31 @@ export default function HomePage() {
 
       {/* pl-64 = compense la largeur fixe de la Sidebar (w-64) pour ne pas être recouvert */}
       <div className="flex-1 pl-64">
-        <TopBar title="Tableau de bord" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} />
+        <TopBar
+          title="Tableau de bord"
+          greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`}
+          onSearch={handleSearch}
+        />
 
         <main className="px-8 py-6">
           {dataError && (
             <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {dataError}
+            </div>
+          )}
+
+          {isSearching && (
+            <div className="mb-6 flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-4 py-2.5">
+              <p className="text-sm text-foreground">
+                Résultats pour <span className="font-semibold">« {searchQuery} »</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => handleSearch("")}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Effacer
+              </button>
             </div>
           )}
 
@@ -144,31 +211,37 @@ export default function HomePage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-semibold tracking-tight">Mes collections</h2>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddSetOpen(true)}
-                      aria-label="Ajouter une collection"
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
-                    >
-                      <Plus size={16} />
-                    </button>
+                    {!isSearching && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddSetOpen(true)}
+                        aria-label="Ajouter une collection"
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    )}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Cliquez sur une collection pour explorer ses cartes.
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-              >
-                Tout voir
-                <ChevronRight size={16} />
-              </button>
+              {!isSearching && (
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  Tout voir
+                  <ChevronRight size={16} />
+                </button>
+              )}
             </div>
 
             {isLoadingData ? (
               <p className="mt-6 text-sm text-muted-foreground">Chargement...</p>
+            ) : sets.length === 0 ? (
+              <p className="mt-6 text-sm text-muted-foreground">Aucune collection trouvée.</p>
             ) : (
               <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {sets.map((set) => (
@@ -178,23 +251,27 @@ export default function HomePage() {
             )}
           </section>
 
-          {/* ----- Section Bibliothèque (cards, paginées par 25) ----- */}
+          {/* ----- Section Bibliothèque (cards) ----- */}
           <section className="mt-12">
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-semibold tracking-tight">Bibliothèque</h2>
-              <button
-                type="button"
-                onClick={() => setIsAddCardOpen(true)}
-                aria-label="Ajouter une carte"
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                <Plus size={16} />
-              </button>
+              {!isSearching && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddCardOpen(true)}
+                  aria-label="Ajouter une carte"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  <Plus size={16} />
+                </button>
+              )}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{cardsTotal} cartes possédées</p>
 
             {isLoadingData ? (
               <p className="mt-6 text-sm text-muted-foreground">Chargement des cartes...</p>
+            ) : cards.length === 0 ? (
+              <p className="mt-6 text-sm text-muted-foreground">Aucune carte trouvée.</p>
             ) : (
               <>
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
@@ -203,19 +280,20 @@ export default function HomePage() {
                       key={card.id}
                       card={card}
                       onAddToSet={() => openAddToSetModal(card)}
-                      onCardClick={
-                        () =>
-                          navigate(
-                            `/card/${encodeURIComponent(card.name)}?setCode=${encodeURIComponent(
-                              card.extension
-                            )}&gameTypeId=${card.gameType.id}`
-                          )
+                      onCardClick={() =>
+                        navigate(
+                          `/card/${encodeURIComponent(card.name)}?setCode=${encodeURIComponent(
+                            card.extension
+                          )}&gameTypeId=${card.gameType.id}`
+                        )
                       }
                     />
                   ))}
                 </div>
 
-                <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
+                {!isSearching && (
+                  <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
+                )}
               </>
             )}
           </section>
@@ -226,7 +304,6 @@ export default function HomePage() {
         isOpen={isAddCardOpen}
         onClose={() => setIsAddCardOpen(false)}
         onCardCreated={handleCardCreated}
-        //user = {user}
       />
 
       <AddSetModal

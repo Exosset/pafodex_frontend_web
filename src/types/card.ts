@@ -1,23 +1,21 @@
 export interface Card {
-    id: number;
-    name: string;
-    extension: string;
-    number: number;
-    image: string;
-    gameType: {
-        id: number;
-        nom: string;
-    }
-}
+      id: number;
+      name: string;
+      extension: string;
+      number: string;
+      image: string;
+      numberCard: number;
+      isFavorite: boolean;
+      gameType: { id: number; nom: string; }
+  }
 
 export interface AddCard {
-    name: string;
-    extension: string;
-    number: string;
-    image: string
-    gameTypeId: number;
-    libraryId: number;
-    hasSelectedExternalCard: boolean;
+      name: string;
+      extension: string;
+      number: string;
+      image: string;
+      gameTypeId: number;
+      libraryId: number;
 }
 
 export interface ScryfallCard {
@@ -28,15 +26,6 @@ export interface ScryfallCard {
     image_uris?: {
         normal: string;
     };
-}
-
-export interface TcgdexCard {
-    name: string;
-    set: {
-        name: string;
-    };
-    localId: string;
-    image?: string;
 }
 
 export interface ScryfallCardDetail {

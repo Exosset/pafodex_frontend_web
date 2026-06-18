@@ -1,7 +1,4 @@
-import type { AddCard } from "@/types/card";
-import type { Card } from "@/types/card";
-import type { TcgdexCard } from "@/types/card";
-import type { ScryfallCard, ScryfallSearchResponse, ScryfallCardDetail } from "@/types/card";
+import type { AddCard, Card, ScryfallCard, ScryfallSearchResponse, ScryfallCardDetail } from "@/types/card";
 
 export interface FallbackCardDetail {
     name: string;
@@ -16,8 +13,7 @@ export interface FallbackCardDetail {
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 const API_URL = API_BASE_URL.endsWith("/api") ? API_BASE_URL : `${API_BASE_URL}/api`;
 
-// APIs externes utilisées selon le type de jeu.
-const TCGDEX_API_URL = "https://api.tcgdex.net/v2/fr";
+// API externe utilisée pour Magic.
 const SCRYFALL_API_URL = "https://api.scryfall.com";
 
 export async function searchScryfallCards(query: string): Promise<ScryfallCard[]> {
@@ -52,9 +48,7 @@ export async function fetchScryfallCardDetail(
         params.set("set", setCode.trim());
     }
 
-    const res = await fetch(
-        `${SCRYFALL_API_URL}/cards/named?${params.toString()}`
-    );
+    const res = await fetch(`${SCRYFALL_API_URL}/cards/named?${params.toString()}`);
 
     if (!res.ok) {
         if (res.status === 404) return null;
@@ -98,17 +92,4 @@ export async function createCard(payload: AddCard): Promise<Card> {
     }
 
     return res.json();
-}
-
-export async function searchTcgdexCards(query: string): Promise<TcgdexCard[]> {
-    if (!query.trim()) return [];
- 
-    const res = await fetch(`${TCGDEX_API_URL}/cards?name=${encodeURIComponent(query.trim())}`);
- 
-    if (!res.ok) {
-        throw new Error("Impossible de contacter la base de cartes Pokémon.");
-    }
- 
-    const data: TcgdexCard[] = await res.json();
-    return data;
 }

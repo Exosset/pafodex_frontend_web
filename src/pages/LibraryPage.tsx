@@ -6,7 +6,7 @@ import { LibraryCard } from "@/components/home/LibraryCard";
 import { PaginationControls } from "@/components/home/PaginationControls";
 import { AddCardModal } from "@/components/home/AddCardModal";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { fetchCurrentUserCardSet } from "@/services/libraryService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
 

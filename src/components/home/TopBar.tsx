@@ -1,20 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { Search, Moon, Sun } from "lucide-react";
 
 export interface TopBarProps {
   title: string;
   greeting: string;
+  onSearch?: (query: string) => void;
 }
 
-export function TopBar({ title, greeting }: TopBarProps) {
+export function TopBar({ title, greeting, onSearch }: TopBarProps) {
+  const [searchValue, setSearchValue] = useState("");
+
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === "undefined") return false;
-
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) {
       return savedTheme === "dark";
     }
-
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
@@ -22,6 +23,12 @@ export function TopBar({ title, greeting }: TopBarProps) {
     document.documentElement.classList.toggle("dark", isDark);
     localStorage.setItem("theme", isDark ? "dark" : "light");
   }, [isDark]);
+
+  function handleSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      onSearch?.(searchValue.trim());
+    }
+  }
 
   return (
     <header className="flex items-center justify-between border-b border-border bg-background px-8 py-4">
@@ -36,6 +43,9 @@ export function TopBar({ title, greeting }: TopBarProps) {
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
             placeholder="Rechercher une carte, un set, un artiste..."
             className="w-72 rounded-full border border-border bg-card py-2 pl-9 pr-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
@@ -50,8 +60,6 @@ export function TopBar({ title, greeting }: TopBarProps) {
         >
           {isDark ? <Sun size={16} /> : <Moon size={16} />}
         </button>
-
-        
       </div>
     </header>
   );
