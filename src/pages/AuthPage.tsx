@@ -245,7 +245,7 @@ export default function AuthPage() {
               <div className="h-2 w-1/2 rounded-full bg-muted" />
             </div>
           </div>
-          */}
+          
           <img
             src={pokemonCard}
             alt="Carte Pokémon"
