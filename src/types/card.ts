@@ -18,6 +18,12 @@ export interface AddCard {
       libraryId: number;
 }
 
+export interface OwnedLibraryCard {
+    id: number;
+    numberCard?: number;
+    isFavorite?: boolean;
+}
+
 export interface ScryfallCard {
     id: string;
     name: string;
@@ -26,6 +32,66 @@ export interface ScryfallCard {
     image_uris?: {
         normal: string;
     };
+}
+
+export interface YgoprodeckCard {
+    id: number;
+    name: string;
+    type: string;
+    frameType: string;
+    desc: string;
+    atk?: number;
+    def?: number;
+    level?: number;
+    race?: string;
+    attribute?: string;
+    card_sets?: Array<{
+        set_name: string;
+        set_code: string;
+        set_rarity: string;
+    }>;
+    card_images?: Array<{
+        image_url: string;
+        image_url_small?: string;
+    }>;
+}
+
+export interface YgoprodeckCardInfoResponse {
+    data: YgoprodeckCard[];
+}
+
+export interface RiftcodexCard {
+    id: string;
+    name: string;
+    riftbound_id?: string;
+    collector_number?: number | string;
+    classification?: {
+        type?: string;
+        rarity?: string;
+        domain?: string[];
+    };
+    set?: {
+        set_id?: string;
+        label?: string;
+    };
+    media?: {
+        image_url?: string;
+        artist?: string;
+        accessibility_text?: string;
+    };
+    text?: {
+        rich?: string;
+        plain?: string;
+        flavour?: string;
+    };
+}
+
+export interface RiftcodexSearchResponse {
+    items?: RiftcodexCard[];
+    total?: number;
+    page?: number;
+    size?: number;
+    pages?: number;
 }
 
 export interface ScryfallCardDetail {

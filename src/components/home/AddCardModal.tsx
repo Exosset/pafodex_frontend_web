@@ -1,14 +1,29 @@
+
 import { useEffect, useState, type FormEvent } from "react";
 import { Loader2, Search, Check } from "lucide-react";
 import { Modal } from "@/components/common/Modal";
 import { fetchGameTypes } from "@/services/gameTypeService";
 import { fetchCurrentUser } from "@/services/userService";
-import { createCard, searchScryfallCards } from "@/services/cardService";
-import { mapperAPIScryfall } from "@/mappers/apiMapper";
+import {
+  createCard,
+  searchScryfallCards,
+  searchYgoprodeckCards,
+  searchRiftcodexCards,
+} from "@/services/cardService";
+import {
+  mapperAPIScryfall,
+  mapperAPIYugioh,
+  mapperAPIRiftbound,
+} from "@/mappers/apiMapper";
 import { buildCardAdd } from "@/mappers/cardMapper";
 import { validateCard, type CardValidationErrors } from "@/validators/cardValidator";
 import type { GameType } from "@/types/gameType";
-import type { Card, ScryfallCard } from "@/types/card";
+import type {
+  Card,
+  ScryfallCard,
+  YgoprodeckCard,
+  RiftcodexCard,
+} from "@/types/card";
 
 export interface AddCardModalProps {
   isOpen: boolean;
@@ -16,8 +31,42 @@ export interface AddCardModalProps {
   onCardCreated: (card: Card) => void;
 }
 
-// Nom exact du jeu Magic tel que renvoyé par votre backend /game-types
-const MTG_GAME_NAME = "Magic The Gathering";
+// Variante possible des noms renvoyés par le backend
+const MTG_GAME_KEYWORDS = ["magic", "mtg"];
+const YGO_GAME_KEYWORDS = ["yu-gi-oh", "yugioh", "ygo"];
+const RIFTBOUND_GAME_KEYWORDS = ["riftbound", "rift codex", "rift-bound"];
+
+// Résultat de recherche générique, peu importe l'API d'origine
+type ExternalSearchResult =
+  | { source: "MAGIC"; card: ScryfallCard }
+  | { source: "YUGIOH"; card: YgoprodeckCard }
+  | { source: "RIFTBOUND"; card: RiftcodexCard };
+
+function getSearchResultName(result: ExternalSearchResult): string {
+  return result.card.name;
+}
+
+function getSearchResultSetLabel(result: ExternalSearchResult): string {
+  switch (result.source) {
+    case "MAGIC":
+      return result.card.set.toUpperCase();
+    case "YUGIOH":
+      return result.card.card_sets?.[0]?.set_name ?? "";
+    case "RIFTBOUND":
+      return result.card.set?.label ?? result.card.set?.set_id ?? "";
+  }
+}
+
+function getSearchResultNumberLabel(result: ExternalSearchResult): string {
+  switch (result.source) {
+    case "MAGIC":
+      return result.card.collector_number;
+    case "YUGIOH":
+      return result.card.card_sets?.[0]?.set_code ?? String(result.card.id);
+    case "RIFTBOUND":
+      return String(result.card.collector_number ?? result.card.riftbound_id ?? "");
+  }
+}
 
 export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalProps) {
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
@@ -29,7 +78,16 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   const [selectedGameTypeId, setSelectedGameTypeId] = useState("");
   const [nameValue, setNameValue] = useState("");
 
-  // Champs renseignés automatiquement par Scryfall, invisibles dans l'UI.
+  function normalizeGameName(value: string) {
+    return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function matchesGameKeywords(value: string, keywords: string[]) {
+    const normalizedValue = normalizeGameName(value);
+    return keywords.some((keyword) => normalizedValue.includes(keyword));
+  }
+
+  // Champs renseignés automatiquement par l'API externe, invisibles dans l'UI.
   // Aucune valeur de repli ici : c'est le mapper buildCardAdd qui s'en occupe.
   const [extension, setExtension] = useState("");
   const [number, setNumber] = useState("");
@@ -38,15 +96,24 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
 
   const [libraryId, setLibraryId] = useState<number | null>(null);
 
-  // ----- Recherche Scryfall (Magic uniquement) -----
-  const [searchResults, setSearchResults] = useState<ScryfallCard[]>([]);
+  // ----- Recherche externe (Scryfall pour Magic) -----
+  const [searchResults, setSearchResults] = useState<ExternalSearchResult[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
   // gameType actuellement sélectionné dans le menu déroulant (objet complet, pas juste l'id)
   const selectedGameType = gameTypes.find((g) => String(g.id) === selectedGameTypeId);
-  const isMtgSelected = selectedGameType?.name === MTG_GAME_NAME;
+  const isMtgSelected = selectedGameType?.name
+    ? matchesGameKeywords(selectedGameType.name, MTG_GAME_KEYWORDS)
+    : false;
+  const isYgoSelected = selectedGameType?.name
+    ? matchesGameKeywords(selectedGameType.name, YGO_GAME_KEYWORDS)
+    : false;
+  const isRiftboundSelected = selectedGameType?.name
+    ? matchesGameKeywords(selectedGameType.name, RIFTBOUND_GAME_KEYWORDS)
+    : false;
+  const hasExternalSearch = isMtgSelected || isYgoSelected || isRiftboundSelected;
 
   // Charge la liste des jeux + le profil utilisateur (pour libraryId) à l'ouverture
   useEffect(() => {
@@ -87,8 +154,16 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
     setIsSearching(true);
     setSearchError(null);
     try {
-      const results = await searchScryfallCards(nameValue);
-      setSearchResults(results);
+      if (isMtgSelected) {
+        const results = await searchScryfallCards(nameValue);
+        setSearchResults(results.map((card) => ({ source: "MAGIC" as const, card })));
+      } else if (isYgoSelected) {
+        const results = await searchYgoprodeckCards(nameValue);
+        setSearchResults(results.map((card) => ({ source: "YUGIOH" as const, card })));
+      } else if (isRiftboundSelected) {
+        const results = await searchRiftcodexCards(nameValue);
+        setSearchResults(results.map((card) => ({ source: "RIFTBOUND" as const, card })));
+      }
       setIsSearchOpen(true);
     } catch (err) {
       console.error(err);
@@ -101,15 +176,29 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   function handleSelectResult(card: ScryfallCard) {
     if (!selectedGameType || libraryId === null) return;
 
-    const mapped = mapperAPIScryfall(card, selectedGameType.id, libraryId);
+    const currentGameTypeId = selectedGameType.id;
+    const currentLibraryId = libraryId;
 
-    setNameValue(mapped.name);
-    setExtension(mapped.extension);
-    setNumber(mapped.number);
-    setImage(mapped.image);
-    setHasSelectedExternalCard(true);
-    setIsSearchOpen(false);
-    setSearchResults([]);
+    // Chaque API externe a son propre mapper, qui traduit sa réponse
+    // vers la forme AddCard attendue par le backend.
+    async function applySelection() {
+      const mapped =
+        result.source === "MAGIC"
+          ? mapperAPIScryfall(result.card, currentGameTypeId, currentLibraryId)
+          : result.source === "YUGIOH"
+              ? mapperAPIYugioh(result.card, currentGameTypeId, currentLibraryId)
+              : mapperAPIRiftbound(result.card, currentGameTypeId, currentLibraryId);
+
+      setNameValue(mapped.name);
+      setExtension(mapped.extension);
+      setNumber(mapped.number);
+      setImage(mapped.image);
+      setHasSelectedExternalCard(true);
+      setIsSearchOpen(false);
+      setSearchResults([]);
+    }
+
+    void applySelection();
   }
 
   function handleGameTypeChange(value: string) {
@@ -211,7 +300,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
           )}
         </div>
 
-        {/* Nom — avec recherche Scryfall intégrée pour Magic */}
+        {/* Nom — avec recherche externe intégrée pour les jeux supportés */}
         <div className="relative">
           <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
             Nom
@@ -265,7 +354,19 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
               ) : (
                 <ul className="py-1">
                   {searchResults.map((result) => {
-                    const resultKey = `${result.id}-${result.set}-${result.collector_number}`;
+                    const resultName = getSearchResultName(result);
+                    const image =
+                      result.source === "MAGIC"
+                        ? result.card.image_uris?.normal
+                        : result.source === "YUGIOH"
+                          ? result.card.card_images?.[0]?.image_url
+                          : result.source === "RIFTBOUND"
+                            ? result.card.media?.image_url
+                            : "";
+                    const setLabel = getSearchResultSetLabel(result);
+                    const numberLabel = getSearchResultNumberLabel(result);
+
+                    const resultKey = `${result.source}-${resultName}-${setLabel}-${numberLabel}`;
 
                     return (
                       <li key={resultKey}>
@@ -275,14 +376,10 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
                           className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-secondary"
                         >
                           <span className="flex items-center gap-3">
-                            {result.image_uris?.normal && (
-                              <img
-                                src={result.image_uris.normal}
-                                alt={result.name}
-                                className="h-10 w-auto rounded"
-                              />
+                            {image && (
+                              <img src={image} alt={resultName} className="h-10 w-auto rounded" />
                             )}
-                            <span className="font-semibold">{result.name}</span>
+                            <span className="font-semibold">{resultName}</span>
                           </span>
                           <span className="whitespace-nowrap text-sm text-muted-foreground">
                             {result.set.toUpperCase()} {result.collector_number}

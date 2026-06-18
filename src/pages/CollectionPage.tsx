@@ -10,8 +10,6 @@ import type { CurrentUserProfile } from "@/types/user";
 import type { Set } from "@/types/set";
 
 const GAME_TYPE_COLORS: Record<string, string> = {
-  Pokémon: "var(--color-pokemon)",
-  Pokemon: "var(--color-pokemon)",
   "Magic The Gathering": "var(--color-mtg)",
   Magic: "var(--color-mtg)",
   "Yu-Gi-Oh!": "var(--color-yugioh)",

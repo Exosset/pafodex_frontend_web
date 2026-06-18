@@ -46,46 +46,6 @@ const RULES_CARDS = [
     ],
   },
   {
-    key: "pokemon",
-    label: "Pokémon",
-    accent: "from-[#E85A48] to-[#FF8B74]",
-    summary: "Les règles officielles du Pokémon TCG expliquent comment gagner la partie, préparer son équipe, jouer ses cartes et résoudre les combats.",
-    officialUrl: "https://www.pokemon.com/us/play-pokemon/about-pokemon-tcg",
-    sections: [
-      {
-        title: "Objectif du jeu",
-        content: [
-          "Un joueur gagne quand l'adversaire n'a plus de Pokémon en jeu et ne peut plus continuer le combat.",
-          "Le jeu repose sur la gestion d'une équipe de Pokémon, d'énergie et d'outils de soutien.",
-        ],
-      },
-      {
-        title: "Déroulement du tour",
-        content: [
-          "Le tour commence par le début du tour, puis la pioche, puis les actions du joueur.",
-          "Le joueur peut jouer des cartes Énergie, évoluer ses Pokémon, utiliser des objets ou attaquer.",
-          "La fin du tour marque la fermeture des actions et la préparation du tour suivant.",
-        ],
-      },
-      {
-        title: "Attaques et dégâts",
-        content: [
-          "Une attaque ne peut être utilisée que si le Pokémon dispose des Énergies requises et est prêt à attaquer.",
-          "Les dégâts sont infligés au Pokémon adverse, puis les effets d'attaque sont résolus.",
-          "Certaines cartes modifient la puissance des attaques, les dégâts ou les conditions de combat.",
-        ],
-      },
-      {
-        title: "Règles de base",
-        content: [
-          "Les Pokémon de base, les évolutions et les cartes de soutien doivent être placés dans les zones appropriées.",
-          "Les effets de statut, les cartes de jeu et les accessoires sont résolus selon les textes de la carte.",
-          "Les règles de remplacement et les exceptions sont toujours prioritaires sur les effets généraux.",
-        ],
-      },
-    ],
-  },
-  {
     key: "yugioh",
     label: "Yu-Gi-Oh!",
     accent: "from-[#7A3DFF] to-[#B58BFF]",
