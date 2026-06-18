@@ -7,7 +7,7 @@ import { PaginationControls } from "@/components/home/PaginationControls";
 import { AddCardModal } from "@/components/home/AddCardModal";
 import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { fetchCurrentUserCardSet } from "@/services/libraryService";
 import { deleteLibraryCard } from "@/services/cardService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";

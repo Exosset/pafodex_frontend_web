@@ -28,7 +28,6 @@ export function mapperAPIYugioh(payload: YgoprodeckCard, gameTypeId: number, lib
         image: firstImage?.image_url ?? "",
         gameTypeId,
         libraryId,
-        hasSelectedExternalCard: true
     };
 
     return newPayload;
@@ -42,7 +41,6 @@ export function mapperAPIRiftbound(payload: RiftcodexCard, gameTypeId: number, l
         image: payload.media?.image_url ?? "",
         gameTypeId,
         libraryId,
-        hasSelectedExternalCard: true
     };
 
     return newPayload;

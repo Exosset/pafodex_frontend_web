@@ -6,7 +6,7 @@ import { SetCard } from "@/components/home/SetCard";
 import { AddSetModal } from "@/components/home/AddSetModal";
 import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { fetchCurrentUserCardSet } from "@/services/libraryService";
 import { deleteSet } from "@/services/setService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Set } from "@/types/set";

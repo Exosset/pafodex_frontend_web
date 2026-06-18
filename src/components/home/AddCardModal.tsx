@@ -303,7 +303,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
               value={nameValue}
               onChange={(e) => handleNameChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && isMtgSelected) {
+                if (e.key === "Enter" && hasExternalSearch) {
                   e.preventDefault();
                   handleSearch();
                 }
@@ -314,7 +314,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
                 fieldErrors.name ? "border-destructive" : "border-border"
               }`}
             />
-            {isMtgSelected && (
+            {hasExternalSearch && (
               <button
                 type="button"
                 onClick={handleSearch}

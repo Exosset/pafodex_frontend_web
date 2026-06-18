@@ -9,12 +9,9 @@ import { AddSetModal } from "@/components/home/AddSetModal";
 import { Modal } from "@/components/common/Modal";
 import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { fetchCurrentUserCardSet, fetchSearchCurrentLibrary } from "@/services/libraryService";
 import { addCardToSet, deleteSet } from "@/services/setService";
 import { deleteLibraryCard } from "@/services/cardService";
-import { fetchCurrentUserCardSet } from "@/services/libraryService";
-import { fetchSearchCurrentLibrary } from "@/services/libraryService";
-import { addCardToSet } from "@/services/setService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
 import type { Set } from "@/types/set";
@@ -225,7 +222,7 @@ export default function HomePage() {
       />
 
       <div className="flex min-h-screen flex-1 flex-col pl-[var(--sidebar-width)] transition-[padding] duration-200">
-        <TopBar title="Tableau de bord" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} />
+        <TopBar title="Tableau de bord" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} onSearch={handleSearch} />
 
         <main className="flex-1 px-8 py-6">
           {deleteSuccessMessage && (
