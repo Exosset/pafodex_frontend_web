@@ -6,7 +6,7 @@ import { SetCard } from "@/components/home/SetCard";
 import { AddSetModal } from "@/components/home/AddSetModal";
 import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/libraryService";
+import { fetchCurrentUserCardSet, fetchSearchCurrentLibrary } from "@/services/libraryService";
 import { deleteSet } from "@/services/setService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Set } from "@/types/set";
@@ -28,6 +28,8 @@ export default function CollectionsPage() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [selectedGameTypeIds, setSelectedGameTypeIds] = useState<number[]>([]);
   const [deletingSetId, setDeletingSetId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const isSearching = searchQuery.trim() !== "";
 
   // ----- Modal d'ajout de set -----
   const [isAddSetOpen, setIsAddSetOpen] = useState(false);
@@ -43,6 +45,8 @@ export default function CollectionsPage() {
   }, []);
 
   useEffect(() => {
+    if (isSearching) return;
+
     let isCancelled = false;
 
     async function loadData() {
@@ -70,7 +74,36 @@ export default function CollectionsPage() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [isSearching]);
+
+  useEffect(() => {
+    if (!isSearching) return;
+
+    let isCancelled = false;
+
+    async function runSearch() {
+      setIsLoadingData(true);
+      setDataError(null);
+
+      try {
+        const result = await fetchSearchCurrentLibrary(searchQuery.trim(), 1);
+        if (isCancelled) return;
+        setSets(result.sets);
+      } catch (err) {
+        if (isCancelled) return;
+        console.error(err);
+        setDataError("Impossible d'effectuer la recherche.");
+      } finally {
+        if (!isCancelled) setIsLoadingData(false);
+      }
+    }
+
+    runSearch();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [searchQuery, isSearching]);
 
   const gameTypes = useMemo(() => {
     return Array.from(
@@ -100,6 +133,10 @@ export default function CollectionsPage() {
     setSets((prev) => [newSet, ...prev]);
   }
 
+  function handleSearch(query: string) {
+    setSearchQuery(query);
+  }
+
   async function handleDeleteSet(setId: number) {
     setDeletingSetId(setId);
     setDataError(null);
@@ -123,9 +160,24 @@ export default function CollectionsPage() {
       />
 
       <div className="flex min-h-screen flex-1 flex-col pl-[var(--sidebar-width)] transition-[padding] duration-200">
-        <TopBar title="Collections" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} />
+        <TopBar title="Collections" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} onSearch={handleSearch} />
 
         <main className="flex-1 px-8 py-6">
+          {isSearching && (
+            <div className="mb-6 flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-4 py-2.5">
+              <p className="text-sm text-foreground">
+                Résultats pour <span className="font-semibold">« {searchQuery} »</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => handleSearch("")}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Effacer
+              </button>
+            </div>
+          )}
+
           {dataError && (
             <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {dataError}

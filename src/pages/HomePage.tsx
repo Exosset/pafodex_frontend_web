@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Sidebar } from "@/components/home/Sidebar";
 import { TopBar } from "@/components/home/TopBar";
 import { LibraryCard } from "@/components/home/LibraryCard";
@@ -11,7 +11,7 @@ import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
 import { fetchCurrentUserCardSet, fetchSearchCurrentLibrary } from "@/services/libraryService";
 import { addCardToSet, deleteSet } from "@/services/setService";
-import { deleteLibraryCard } from "@/services/cardService";
+import { deleteLibraryCard, updateOwnedCardMetadata } from "@/services/cardService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
 import type { Set } from "@/types/set";
@@ -49,6 +49,13 @@ export default function HomePage() {
   const [deletingCardId, setDeletingCardId] = useState<number | null>(null);
   const [deletingSetId, setDeletingSetId] = useState<number | null>(null);
   const [deleteSuccessMessage, setDeleteSuccessMessage] = useState<string | null>(null);
+  const [favoritingCardId, setFavoritingCardId] = useState<number | null>(null);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [selectedGameTypeId, setSelectedGameTypeId] = useState<number | null>(null);
+  const [draggedCard, setDraggedCard] = useState<Card | null>(null);
+  const [dropTargetSetId, setDropTargetSetId] = useState<number | null>(null);
+  const [droppingSetId, setDroppingSetId] = useState<number | null>(null);
+  const [toastError, setToastError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCurrentUser()
@@ -145,6 +152,16 @@ export default function HomePage() {
     return () => window.clearTimeout(timeoutId);
   }, [deleteSuccessMessage]);
 
+  useEffect(() => {
+    if (!toastError) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setToastError(null);
+    }, 4000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [toastError]);
+
   function handleCardCreated(newCard: Card) {
     setCards((prev) => [newCard, ...prev]);
     setCardsTotal((prev) => prev + 1);
@@ -210,9 +227,111 @@ export default function HomePage() {
     }
   }
 
+  async function handleToggleFavorite(card: Card) {
+    setFavoritingCardId(card.id);
+    setDataError(null);
+
+    try {
+      await updateOwnedCardMetadata(card.id, {
+        numberCard: card.numberCard > 0 ? card.numberCard : 1,
+        isFavorite: !card.isFavorite,
+      });
+
+      setCards((prev) =>
+        prev.map((item) =>
+          item.id === card.id ? { ...item, isFavorite: !item.isFavorite } : item
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      setDataError(err instanceof Error ? err.message : "Impossible de mettre à jour les favoris.");
+    } finally {
+      setFavoritingCardId(null);
+    }
+  }
+
+  function isSetCompatibleWithCard(set: Set, card: Card) {
+    return set.gameType.id === card.gameType.id;
+  }
+
+  function handleCardDragStart(card: Card) {
+    setDraggedCard(card);
+    setDropTargetSetId(null);
+    setDataError(null);
+  }
+
+  function handleCardDragEnd() {
+    setDraggedCard(null);
+    setDropTargetSetId(null);
+  }
+
+  function handleSetDragOver(event: React.DragEvent<HTMLDivElement>, set: Set) {
+    if (!draggedCard || droppingSetId !== null) {
+      return;
+    }
+
+    event.preventDefault();
+    const isCompatible = isSetCompatibleWithCard(set, draggedCard);
+    event.dataTransfer.dropEffect = isCompatible ? "move" : "none";
+
+    if (!isCompatible) {
+      if (dropTargetSetId !== null) {
+        setDropTargetSetId(null);
+      }
+      return;
+    }
+
+    if (dropTargetSetId !== set.id) {
+      setDropTargetSetId(set.id);
+    }
+  }
+
+  function handleSetDragLeave(setId: number) {
+    if (dropTargetSetId === setId) {
+      setDropTargetSetId(null);
+    }
+  }
+
+  async function handleSetDrop(event: React.DragEvent<HTMLDivElement>, set: Set) {
+    event.preventDefault();
+
+    if (!draggedCard) {
+      return;
+    }
+
+    if (!isSetCompatibleWithCard(set, draggedCard)) {
+      setToastError(`Impossible d'ajouter « ${draggedCard.name} » : ce set est pour « ${set.gameType.name} », pas pour « ${draggedCard.gameType.nom} ».`);
+      setDropTargetSetId(null);
+      setDraggedCard(null);
+      return;
+    }
+
+    setDroppingSetId(set.id);
+    setDataError(null);
+
+    try {
+      await addCardToSet(set.id, draggedCard.id);
+      setDeleteSuccessMessage(`Carte ajoutée à la collection « ${set.name} ».`);
+    } catch (err) {
+      setDataError(err instanceof Error ? err.message : "Impossible d'ajouter la carte.");
+    } finally {
+      setDroppingSetId(null);
+      setDropTargetSetId(null);
+      setDraggedCard(null);
+    }
+  }
+
   const matchingSets = selectedCard
     ? sets.filter((set) => set.gameType.id === selectedCard.gameType.id)
     : [];
+
+  const availableGameTypes = Array.from(
+    new Map(cards.map((c) => [c.gameType.id, c.gameType])).values()
+  ).sort((a, b) => a.nom.localeCompare(b.nom));
+
+  const displayedCards = cards
+    .filter((card) => !showFavoritesOnly || card.isFavorite)
+    .filter((card) => selectedGameTypeId === null || card.gameType.id === selectedGameTypeId);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -224,7 +343,27 @@ export default function HomePage() {
       <div className="flex min-h-screen flex-1 flex-col pl-[var(--sidebar-width)] transition-[padding] duration-200">
         <TopBar title="Tableau de bord" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} onSearch={handleSearch} />
 
-        <main className="flex-1 px-8 py-6">
+        {toastError && (
+        <div
+          aria-live="assertive"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 max-w-sm w-[calc(100%-2rem)] rounded-xl border border-destructive/40 bg-destructive/95 px-4 py-3 text-sm font-medium text-destructive-foreground shadow-lg backdrop-blur-sm transition-all"
+        >
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 shrink-0">✗</span>
+            <span>{toastError}</span>
+            <button
+              type="button"
+              onClick={() => setToastError(null)}
+              aria-label="Fermer"
+              className="ml-auto shrink-0 opacity-70 hover:opacity-100"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 px-8 py-6">
           {deleteSuccessMessage && (
             <div className="mb-6 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
               {deleteSuccessMessage}
@@ -275,15 +414,6 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-              {!isSearching && (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                >
-                  Tout voir
-                  <ChevronRight size={16} />
-                </button>
-              )}
             </div>
 
             {isLoadingData ? (
@@ -297,6 +427,15 @@ export default function HomePage() {
                     key={set.id}
                     set={set}
                     onDelete={() => handleDeleteSet(set.id)}
+                    onDragOverCard={(event) => handleSetDragOver(event, set)}
+                    onDragLeaveCard={() => handleSetDragLeave(set.id)}
+                    onDropCard={(event) => {
+                      void handleSetDrop(event, set);
+                    }}
+                    isCardDragActive={draggedCard !== null}
+                    isDropTarget={dropTargetSetId === set.id}
+                    isDropDisabled={draggedCard ? !isSetCompatibleWithCard(set, draggedCard) : false}
+                    isDropping={droppingSetId === set.id}
                     isDeleting={deletingSetId === set.id}
                   />
                 ))}
@@ -318,23 +457,70 @@ export default function HomePage() {
                   <Plus size={16} />
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => setShowFavoritesOnly((prev) => !prev)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  showFavoritesOnly
+                    ? "border-transparent bg-primary text-primary-foreground"
+                    : "border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+              >
+                Favoris uniquement
+              </button>
             </div>
+
+            {availableGameTypes.length > 1 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedGameTypeId(null)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    selectedGameTypeId === null
+                      ? "border-transparent bg-foreground text-background"
+                      : "border-border bg-card text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  Tous
+                </button>
+                {availableGameTypes.map((gt) => (
+                  <button
+                    key={gt.id}
+                    type="button"
+                    onClick={() => setSelectedGameTypeId(gt.id === selectedGameTypeId ? null : gt.id)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      selectedGameTypeId === gt.id
+                        ? "border-transparent bg-foreground text-background"
+                        : "border-border bg-card text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {gt.nom}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <p className="mt-1 text-sm text-muted-foreground">{cardsTotal} cartes possédées</p>
 
             {isLoadingData ? (
               <p className="mt-6 text-sm text-muted-foreground">Chargement des cartes...</p>
-            ) : cards.length === 0 ? (
+            ) : displayedCards.length === 0 ? (
               <p className="mt-6 text-sm text-muted-foreground">Aucune carte trouvée.</p>
             ) : (
               <>
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                  {cards.map((card) => (
+                  {displayedCards.map((card) => (
                     <LibraryCard
                       key={card.id}
                       card={card}
                       onAddToSet={() => openAddToSetModal(card)}
                       onDeleteFromLibrary={() => handleDeleteFromLibrary(card.id)}
                       isDeletingFromLibrary={deletingCardId === card.id}
+                      onToggleFavorite={() => handleToggleFavorite(card)}
+                      isTogglingFavorite={favoritingCardId === card.id}
+                      isDraggableToSet={true}
+                      onDragToSetStart={handleCardDragStart}
+                      onDragToSetEnd={handleCardDragEnd}
                       onCardClick={
                         () =>
                           navigate(
@@ -354,7 +540,7 @@ export default function HomePage() {
                     />
                   ))}
                 </div>
-                {!isSearching && (
+                {!isSearching && !showFavoritesOnly && selectedGameTypeId === null && (
                   <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
                 )}
               </>
