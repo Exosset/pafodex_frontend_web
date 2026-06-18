@@ -373,7 +373,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
                             <span className="font-semibold">{resultName}</span>
                           </span>
                           <span className="whitespace-nowrap text-sm text-muted-foreground">
-                            {result.set.toUpperCase()} {result.collector_number}
+                            {setLabel} {numberLabel}
                           </span>
                         </button>
                       </li>
