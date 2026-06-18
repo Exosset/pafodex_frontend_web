@@ -1,3 +1,9 @@
+/* ============================================================
+   theme.css — Tokens de couleur Pafodex (Tailwind v4)
+   À fusionner dans src/index.css (ou importer juste après
+   `@import "tailwindcss";`)
+   ============================================================ */
+
 @import "tailwindcss";
 
 /* Permet d'utiliser les variantes dark: pilotées par une classe
@@ -22,6 +28,8 @@
   --color-input: #E1E5EA;
   --color-ring: #6265ED;
   --color-mtg: #496DC3;
+  --color-riftbound: #8B5CF6;
+  --color-yugioh: #D97706;
 
   /* --- Valeurs complétées (non fournies dans la palette) ---
      Choisies pour rester cohérentes avec le mode clair. */
@@ -44,6 +52,8 @@
   --color-warning: #E6AD00;
   --color-destructive: #F9423D;
   --color-mtg: #658BE4;
+  --color-riftbound: #A78BFA;
+  --color-yugioh: #F59E0B;
 
   /* --- Valeurs complétées (non fournies dans la palette) --- */
   --color-primary-foreground: #080D16; /* texte sombre sur primary clair */

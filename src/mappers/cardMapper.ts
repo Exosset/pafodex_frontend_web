@@ -1,13 +1,26 @@
-import type { AddCard } from "../types/card";
+import type { AddCard } from "@/types/card";
 
-export function buildCardAdd(input: AddCard): AddCard {
+const FALLBACK_EXTENSION = "—";
+const FALLBACK_NUMBER = "—";
+const FALLBACK_IMAGE = "";
+
+export interface CardFormInput {
+    name: string;
+    extension: string;
+    number: string;
+    image: string;
+    gameTypeId: number;
+    libraryId: number;
+    hasSelectedExternalCard: boolean;
+}
+
+export function buildCardAdd(input: CardFormInput): AddCard {
     return {
         name: input.name,
-        extension: input.extension,
-        number: input.number,
-        image: input.image,
+        extension: input.hasSelectedExternalCard ? input.extension : FALLBACK_EXTENSION,
+        number: input.hasSelectedExternalCard ? input.number : FALLBACK_NUMBER,
+        image: input.hasSelectedExternalCard ? input.image : FALLBACK_IMAGE,
         gameTypeId: input.gameTypeId,
         libraryId: input.libraryId,
-        hasSelectedExternalCard: input.hasSelectedExternalCard
     };
 }

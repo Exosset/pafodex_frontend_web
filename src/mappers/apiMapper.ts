@@ -8,12 +8,11 @@ export function mapperAPIScryfall(payload: ScryfallCard, gameTypeId: number, lib
         image: payload.image_uris?.normal ?? "",
         gameTypeId,
         libraryId,
-        hasSelectedExternalCard: true
     };
-
+ 
     return newPayload;
 }
-
+ 
 function formatCollectorNumber(collectorNumber: string): string {
     return collectorNumber.padStart(3, "0");
 }

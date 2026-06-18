@@ -5,6 +5,8 @@ import type { Card } from "@/types/card";
 const GAME_ACCENT_VAR: Record<string, string> = {
   "Magic The Gathering": "var(--color-mtg)",
   Magic: "var(--color-mtg)",
+  Riftbound: "var(--color-riftbound)",
+  "Yu Gi Oh": "var(--color-yugioh)",
 };
 
 export function LibraryCard({

@@ -149,7 +149,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   }, [isOpen]);
 
   async function handleSearch() {
-    if (!nameValue.trim() || !hasExternalSearch) return;
+    if (!nameValue.trim() || !isMtgSelected) return;
 
     setIsSearching(true);
     setSearchError(null);
@@ -174,20 +174,14 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   }
 
   function handleSelectResult(result: ExternalSearchResult) {
-    if (!selectedGameType || libraryId === null) return;
+      if (!selectedGameType || libraryId === null) return;
 
-    const currentGameTypeId = selectedGameType.id;
-    const currentLibraryId = libraryId;
-
-    // Chaque API externe a son propre mapper, qui traduit sa réponse
-    // vers la forme AddCard attendue par le backend.
-    async function applySelection() {
       const mapped =
         result.source === "MAGIC"
-          ? mapperAPIScryfall(result.card, currentGameTypeId, currentLibraryId)
+          ? mapperAPIScryfall(result.card, selectedGameType.id, libraryId)
           : result.source === "YUGIOH"
-              ? mapperAPIYugioh(result.card, currentGameTypeId, currentLibraryId)
-              : mapperAPIRiftbound(result.card, currentGameTypeId, currentLibraryId);
+            ? mapperAPIYugioh(result.card, selectedGameType.id, libraryId)
+            : mapperAPIRiftbound(result.card, selectedGameType.id, libraryId);
 
       setNameValue(mapped.name);
       setExtension(mapped.extension);
@@ -196,9 +190,6 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
       setHasSelectedExternalCard(true);
       setIsSearchOpen(false);
       setSearchResults([]);
-    }
-
-    void applySelection();
   }
 
   function handleGameTypeChange(value: string) {
@@ -211,7 +202,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   function handleNameChange(value: string) {
     setNameValue(value);
     setIsSearchOpen(false);
-    // Si l'utilisateur modifie le nom manuellement après une sélection externe,
+    // Si l'utilisateur modifie le nom manuellement après une sélection Scryfall,
     // on ne sait plus garantir que extension/number/image correspondent encore.
     if (hasSelectedExternalCard) {
       setHasSelectedExternalCard(false);
@@ -268,7 +259,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {/* Jeu — en premier, conditionne quelle API externe utiliser */}
+        {/* Jeu — en premier, conditionne la recherche Scryfall */}
         <div>
           <label htmlFor="gameTypeId" className="mb-1.5 block text-sm font-medium text-foreground">
             Jeu
@@ -312,7 +303,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
               value={nameValue}
               onChange={(e) => handleNameChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && hasExternalSearch) {
+                if (e.key === "Enter" && isMtgSelected) {
                   e.preventDefault();
                   handleSearch();
                 }
@@ -323,7 +314,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
                 fieldErrors.name ? "border-destructive" : "border-border"
               }`}
             />
-            {hasExternalSearch && (
+            {isMtgSelected && (
               <button
                 type="button"
                 onClick={handleSearch}
@@ -340,7 +331,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
           {hasSelectedExternalCard && (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-success">
               <Check size={14} />
-              Carte trouvée — édition et numéro pré-remplis automatiquement.
+              Carte trouvée sur Scryfall — édition et numéro pré-remplis automatiquement.
             </p>
           )}
 

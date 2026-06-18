@@ -17,3 +17,15 @@ export interface CurrentUserCardSet {
     sets: Set[];
     pagination: Pagination
 }
+
+export interface OutputSearchLibrary {
+    query: string;
+    sets: Set[];
+    cards: Card[];
+}
+
+export interface SearchLibraryResponse {
+    query: string;
+    sets: Set[];
+    cards: Card[];
+}
