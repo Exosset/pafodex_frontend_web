@@ -42,17 +42,11 @@ export default function AuthPage() {
           ? await login(buildAuthConnexion(data.mail, data.password))
           : await register(buildAuthInscription(data.username, data.mail, data.password, data.confirmPassword));
 
-      // 3. Traitement de la réponse
-      console.log("Un resultat: ", result)
       if (!result.apiToken) {
         setApiError(result.error ?? "Une erreur est survenue, réessaie.");
         return;
       }
 
-
-      console.log("AuthPage: ",result.apiToken)
-
-      // 4. Redirection vers la page d'accueil
       localStorage.setItem('apiToken', result.apiToken)
       navigate("/home");
     } catch {

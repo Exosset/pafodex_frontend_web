@@ -1,11 +1,14 @@
+import { useNavigate } from "react-router-dom";
 import type { Set } from "@/types/set";
 
 export function SetCard({ set }: { set: Set }) {
   const { name, color, gameType } = set;
+  const navigate = useNavigate();
 
   return (
     <button
       type="button"
+      onClick={() => navigate(`/set/${set.id}`)}
       className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left transition-shadow hover:shadow-md"
     >
       {/* Bandeau coloré */}

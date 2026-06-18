@@ -29,6 +29,51 @@ export interface ScryfallCard {
     };
 }
 
+export interface ScryfallCardDetail {
+    id: string;
+    name: string;
+    printed_name?: string;
+    printed_type_line?: string;
+    printed_text?: string;
+    oracle_text?: string;
+    flavor_text?: string;
+    type_line?: string;
+    mana_cost?: string;
+    cmc?: number;
+    power?: string;
+    toughness?: string;
+    loyalty?: string;
+    rarity?: string;
+    set_name?: string;
+    collector_number?: string;
+    artist?: string;
+    lang?: string;
+    image_uris?: {
+        large?: string;
+        normal?: string;
+        small?: string;
+    };
+    card_faces?: Array<{
+        name?: string;
+        printed_name?: string;
+        type_line?: string;
+        printed_type_line?: string;
+        printed_text?: string;
+        oracle_text?: string;
+        mana_cost?: string;
+        image_uris?: {
+            large?: string;
+            normal?: string;
+            small?: string;
+        };
+    }>;
+    prices?: {
+        eur?: string | null;
+        usd?: string | null;
+    };
+    legalities?: Record<string, string>;
+}
+
 export interface ScryfallSearchResponse {
     object: string;
     total_cards?: number;
