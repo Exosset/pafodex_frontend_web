@@ -6,6 +6,8 @@ import CardDetailPage from './pages/CardDetailPage'
 import RulesPage from './pages/RulesPage'
 import CollectionsPage from './pages/CollectionPage'
 import LibraryPage from './pages/LibraryPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import SettingsPage from './pages/SettingsPage'
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
       <Route path="/card/:cardId" element={<CardDetailPage />} />
       <Route path="/rules" element={<RulesPage />} />
       <Route path="/library" element={<LibraryPage />} />
+      <Route path="/parametres" element={<SettingsPage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
     </Routes>
   )
 }

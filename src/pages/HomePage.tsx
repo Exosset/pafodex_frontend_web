@@ -7,7 +7,11 @@ import { PaginationControls } from "@/components/home/PaginationControls";
 import { AddCardModal } from "@/components/home/AddCardModal";
 import { AddSetModal } from "@/components/home/AddSetModal";
 import { Modal } from "@/components/common/Modal";
+import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
+import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { addCardToSet, deleteSet } from "@/services/setService";
+import { deleteLibraryCard } from "@/services/cardService";
 import { fetchCurrentUserCardSet } from "@/services/libraryService";
 import { fetchSearchCurrentLibrary } from "@/services/libraryService";
 import { addCardToSet } from "@/services/setService";
@@ -45,6 +49,9 @@ export default function HomePage() {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [isAddingToSet, setIsAddingToSet] = useState(false);
   const [addToSetError, setAddToSetError] = useState<string | null>(null);
+  const [deletingCardId, setDeletingCardId] = useState<number | null>(null);
+  const [deletingSetId, setDeletingSetId] = useState<number | null>(null);
+  const [deleteSuccessMessage, setDeleteSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCurrentUser()
@@ -131,6 +138,16 @@ export default function HomePage() {
     setSearchQuery(query);
   }
 
+  useEffect(() => {
+    if (!deleteSuccessMessage) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setDeleteSuccessMessage(null);
+    }, 3000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [deleteSuccessMessage]);
+
   function handleCardCreated(newCard: Card) {
     setCards((prev) => [newCard, ...prev]);
     setCardsTotal((prev) => prev + 1);
@@ -163,6 +180,39 @@ export default function HomePage() {
     }
   }
 
+  async function handleDeleteFromLibrary(cardId: number) {
+    setDeletingCardId(cardId);
+    setDataError(null);
+
+    try {
+      await deleteLibraryCard(cardId);
+      setCards((prev) => prev.filter((card) => card.id !== cardId));
+      setCardsTotal((prev) => Math.max(0, prev - 1));
+      setDeleteSuccessMessage("Carte supprimée avec succès.");
+    } catch (err) {
+      console.error(err);
+      setDataError(err instanceof Error ? err.message : "Impossible de supprimer la carte de la bibliothèque.");
+    } finally {
+      setDeletingCardId(null);
+    }
+  }
+
+  async function handleDeleteSet(setId: number) {
+    setDeletingSetId(setId);
+    setDataError(null);
+
+    try {
+      await deleteSet(setId);
+      setSets((prev) => prev.filter((set) => set.id !== setId));
+      setDeleteSuccessMessage("Collection supprimée avec succès.");
+    } catch (err) {
+      console.error(err);
+      setDataError(err instanceof Error ? err.message : "Impossible de supprimer la collection.");
+    } finally {
+      setDeletingSetId(null);
+    }
+  }
+
   const matchingSets = selectedCard
     ? sets.filter((set) => set.gameType.id === selectedCard.gameType.id)
     : [];
@@ -174,15 +224,16 @@ export default function HomePage() {
         userName={isLoadingUser ? "Chargement..." : (user?.pseudo ?? "Utilisateur")}
       />
 
-      {/* pl-64 = compense la largeur fixe de la Sidebar (w-64) pour ne pas être recouvert */}
-      <div className="flex-1 pl-64">
-        <TopBar
-          title="Tableau de bord"
-          greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`}
-          onSearch={handleSearch}
-        />
+      <div className="flex min-h-screen flex-1 flex-col pl-[var(--sidebar-width)] transition-[padding] duration-200">
+        <TopBar title="Tableau de bord" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} />
 
-        <main className="px-8 py-6">
+        <main className="flex-1 px-8 py-6">
+          {deleteSuccessMessage && (
+            <div className="mb-6 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
+              {deleteSuccessMessage}
+            </div>
+          )}
+
           {dataError && (
             <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {dataError}
@@ -245,7 +296,12 @@ export default function HomePage() {
             ) : (
               <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {sets.map((set) => (
-                  <SetCard key={set.id} set={set} />
+                  <SetCard
+                    key={set.id}
+                    set={set}
+                    onDelete={() => handleDeleteSet(set.id)}
+                    isDeleting={deletingSetId === set.id}
+                  />
                 ))}
               </div>
             )}
@@ -280,6 +336,8 @@ export default function HomePage() {
                       key={card.id}
                       card={card}
                       onAddToSet={() => openAddToSetModal(card)}
+                      onDeleteFromLibrary={() => handleDeleteFromLibrary(card.id)}
+                      isDeletingFromLibrary={deletingCardId === card.id}
                       onCardClick={
                         () =>
                           navigate(
@@ -306,6 +364,8 @@ export default function HomePage() {
             )}
           </section>
         </main>
+
+        <SiteFooter />
       </div>
 
       <AddCardModal

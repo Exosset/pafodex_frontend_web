@@ -9,3 +9,15 @@ export interface CurrentUserProfile {
     pseudo: string;
     mail: string;
 }
+
+export interface UpdateProfilePayload {
+    pseudo?: string;
+    mail?: string;
+}
+
+export interface UpdateCurrentUserPayload {
+    pseudo: string;
+    mail: string;
+    password?: string;
+    passwordConfirm?: string;
+}

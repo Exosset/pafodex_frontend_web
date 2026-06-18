@@ -4,8 +4,10 @@ import { Sidebar } from "@/components/home/Sidebar";
 import { TopBar } from "@/components/home/TopBar";
 import { SetCard } from "@/components/home/SetCard";
 import { AddSetModal } from "@/components/home/AddSetModal";
+import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/libraryService";
+import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { deleteSet } from "@/services/setService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Set } from "@/types/set";
 
@@ -25,6 +27,7 @@ export default function CollectionsPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
   const [selectedGameTypeIds, setSelectedGameTypeIds] = useState<number[]>([]);
+  const [deletingSetId, setDeletingSetId] = useState<number | null>(null);
 
   // ----- Modal d'ajout de set -----
   const [isAddSetOpen, setIsAddSetOpen] = useState(false);
@@ -97,6 +100,21 @@ export default function CollectionsPage() {
     setSets((prev) => [newSet, ...prev]);
   }
 
+  async function handleDeleteSet(setId: number) {
+    setDeletingSetId(setId);
+    setDataError(null);
+
+    try {
+      await deleteSet(setId);
+      setSets((prev) => prev.filter((set) => set.id !== setId));
+    } catch (err) {
+      console.error(err);
+      setDataError(err instanceof Error ? err.message : "Impossible de supprimer la collection.");
+    } finally {
+      setDeletingSetId(null);
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar
@@ -104,11 +122,10 @@ export default function CollectionsPage() {
         userName={isLoadingUser ? "Chargement..." : (user?.pseudo ?? "Utilisateur")}
       />
 
-      {/* pl-64 = compense la largeur fixe de la Sidebar (w-64) pour ne pas être recouvert */}
-      <div className="flex-1 pl-64">
+      <div className="flex min-h-screen flex-1 flex-col pl-[var(--sidebar-width)] transition-[padding] duration-200">
         <TopBar title="Collections" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} />
 
-        <main className="px-8 py-6">
+        <main className="flex-1 px-8 py-6">
           {dataError && (
             <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {dataError}
@@ -167,12 +184,19 @@ export default function CollectionsPage() {
             ) : (
               <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {filteredSets.map((set) => (
-                  <SetCard key={set.id} set={set} />
+                  <SetCard
+                    key={set.id}
+                    set={set}
+                    onDelete={() => handleDeleteSet(set.id)}
+                    isDeleting={deletingSetId === set.id}
+                  />
                 ))}
               </div>
             )}
           </section>
         </main>
+
+        <SiteFooter />
       </div>
 
       <AddSetModal

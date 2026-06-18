@@ -290,3 +290,19 @@ export async function updateOwnedCardMetadata(cardId: number, payload: UpdateOwn
         throw new Error(errorData?.error ?? "Impossible de mettre à jour la quantité de la carte.");
     }
 }
+
+export async function deleteLibraryCard(cardId: number): Promise<void> {
+    const token = localStorage.getItem("apiToken");
+
+    const res = await fetch(`${API_URL}/me/library/cards/${cardId}`, {
+        method: "DELETE",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error ?? "Impossible de supprimer la carte de la bibliothèque.");
+    }
+}

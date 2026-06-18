@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { Sidebar } from "@/components/home/Sidebar";
 import { TopBar } from "@/components/home/TopBar";
 import { LibraryCard } from "@/components/home/LibraryCard";
+import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
 import { removeCardFromSet } from "@/services/setService";
 import type { CurrentUserProfile } from "@/types/user";
@@ -100,13 +101,13 @@ export default function SetPage() {
         userName={user?.pseudo ?? "Utilisateur"}
       />
 
-      <div className="flex-1 pl-64">
+      <div className="flex min-h-screen flex-1 flex-col pl-[var(--sidebar-width)] transition-[padding] duration-200">
         <TopBar
           title={setDetails?.name ?? "Collection"}
           greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`}
         />
 
-        <main className="px-8 py-6">
+        <main className="flex-1 px-8 py-6">
           <button
             type="button"
             onClick={() => navigate("/home")}
@@ -166,6 +167,8 @@ export default function SetPage() {
             </>
           )}
         </main>
+
+        <SiteFooter />
       </div>
     </div>
   );
