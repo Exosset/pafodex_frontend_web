@@ -1,3 +1,4 @@
+import { Minus, Plus } from "lucide-react";
 import type { Card } from "@/types/card";
 
 const GAME_ACCENT_VAR: Record<string, string> = {
@@ -7,16 +8,58 @@ const GAME_ACCENT_VAR: Record<string, string> = {
   Magic: "var(--color-mtg)",
 };
 
-export function LibraryCard({ card }: { card: Card }) {
+export function LibraryCard({
+  card,
+  onAddToSet,
+  onRemove,
+  isRemoving = false,
+  onCardClick,
+}: {
+  card: Card;
+  onAddToSet?: () => void;
+  onRemove?: () => void;
+  isRemoving?: boolean;
+  onCardClick?: () => void;
+}) {
   const { name, extension, number, image, gameType } = card;
   const accent = GAME_ACCENT_VAR[gameType.nom] ?? "var(--color-primary)";
 
   return (
     <button
       type="button"
+      onClick={() => onCardClick?.()}
       style={{ "--accent": accent } as React.CSSProperties}
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[var(--accent)]/10"
     >
+      {onAddToSet && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToSet();
+          }}
+          aria-label={`Ajouter ${name} à une collection`}
+          className="absolute right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm transition hover:bg-background"
+        >
+          <Plus size={16} />
+        </button>
+      )}
+
+      {onRemove && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          disabled={isRemoving}
+          aria-label={`Retirer ${name} de la collection`}
+          className="absolute right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Minus size={16} />
+        </button>
+      )}
+
       {/* Liseré supérieur coloré, façon tranche de carte premium */}
       <div
         className="h-1.5 w-full"

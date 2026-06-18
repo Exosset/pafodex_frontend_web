@@ -1,12 +1,13 @@
 import { buildCardSet } from "@/mappers/cardSetMapper";
 import type { OutputCurrentUserCardSet, CurrentUserCardSet } from "@/types/cardSet";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+const API_URL = API_BASE_URL.endsWith("/api") ? API_BASE_URL : `${API_BASE_URL}/api`;
 
 export async function fetchCurrentUserCardSet(page: number): Promise<CurrentUserCardSet> {
     const token = localStorage.getItem("apiToken");
 
-    const res = await fetch(`${API_URL}api/me/library?page=${page}`, {
+    const res = await fetch(`${API_URL}/me/library?page=${page}`, {
         headers: {
             Authorization: `Bearer ${token}`,
         },

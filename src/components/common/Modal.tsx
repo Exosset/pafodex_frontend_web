@@ -33,7 +33,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       />
 
       {/* Contenu */}
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+      <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
           <button

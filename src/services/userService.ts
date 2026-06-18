@@ -1,14 +1,13 @@
 import { buildCurrentUser } from "@/mappers/userMapper";
 import type { CurrentUserProfile, OutputCurrentUserProfile } from "@/types/user";
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
+const API_URL = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
 
 export async function fetchCurrentUser(): Promise<CurrentUserProfile> {
     const token = localStorage.getItem("apiToken");
 
-    console.log(token)
-
-    const res = await fetch(`${API_URL}api/me`, {
+    const res = await fetch(`${API_URL}/me`, {
         headers: {
             Authorization: `Bearer ${token}`,
         },
@@ -19,6 +18,5 @@ export async function fetchCurrentUser(): Promise<CurrentUserProfile> {
     }
 
     const data: OutputCurrentUserProfile = await res.json();
-    console.log("data_test: ", data)
     return buildCurrentUser(data);
 }
