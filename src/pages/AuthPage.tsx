@@ -3,11 +3,54 @@ import { Eye, EyeOff, Mail, Lock, User2, Loader2 } from "lucide-react";
 import { buildAuthConnexion, buildAuthInscription } from "../mappers/authMapper";
 import { validateLogin, validateRegister, type ValidationErrors } from "../validators/authValidator";
 import { login, register } from "../services/authService";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo.png";
 import pokemonCard from "@/assets/pokemon.png";
+import martintintinCard from "@/assets/Martintintin.png";
+import constantCard from "@/assets/Constant.png";
+import enzoCard from "@/assets/Enzo.png";
+import tomCard from "@/assets/Tom.png";
+import marceauCard from "@/assets/MArceau.jpg";
+import johnnyCard from "@/assets/johnnyyyyyyyy.png";
 
 type Mode = "login" | "register";
+
+// Mélange un tableau de façon aléatoire (algorithme de Fisher-Yates).
+function shuffleArray<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// Les cartes à afficher (image ou couleur unie).
+const cardContents = [
+  { image: martintintinCard, colorClass: null },
+  { image: pokemonCard, colorClass: null },
+  { image: constantCard, colorClass: null },
+  { image: enzoCard, colorClass: null },
+  { image: tomCard, colorClass: null },
+  { image: marceauCard, colorClass: null },
+  { image: johnnyCard, colorClass: null },
+];
+
+// 7 emplacements fixes en éventail (rotation + décalage croissants de part
+// et d'autre du centre). L'emplacement central (z-10) reste le plus visible.
+const cardSlots = [
+  "-rotate-[30deg] -translate-x-9",
+  "-rotate-[20deg] -translate-x-6",
+  "-rotate-[10deg] -translate-x-3",
+  "rotate-0 z-10",
+  "rotate-[10deg] translate-x-3",
+  "rotate-[20deg] translate-x-6",
+  "rotate-[30deg] translate-x-9",
+];
+
+// Mélangé une seule fois au chargement du module (donc à chaque vrai rechargement
+// de page) : détermine quelle carte occupe quel emplacement.
+const SHUFFLED_CONTENTS = shuffleArray(cardContents);
 
 export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
@@ -136,7 +179,7 @@ export default function AuthPage() {
               label={mode === "login" ? "E-mail" : "E-mail"}
               name="mail"
               type={mode === "login" ? "text" : "email"}
-              placeholder={mode === "login" ? "utilisateur@exemple.com" : "utilisateur@exemple.com"}
+              placeholder={mode === "login" ? "sacha@pokemon.fr" : "sacha@pokemon.fr"}
               icon={<Mail size={16} />}
               error={errors.mail}
             />
@@ -147,6 +190,11 @@ export default function AuthPage() {
                 <label htmlFor="password" className="text-sm font-medium">
                   Mot de passe
                 </label>
+                {mode === "login" && (
+                  <a href="#" className="text-sm font-medium text-primary hover:underline">
+                    Mot de passe oublié ?
+                  </a>
+                )}
               </div>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -211,14 +259,6 @@ export default function AuthPage() {
               </>
             )}
           </p>
-
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            En continuant, tu acceptes notre{" "}
-            <Link to="/privacy-policy" className="font-medium text-primary hover:underline">
-              politique de confidentialité
-            </Link>
-            .
-          </p>
         </div>
       </div>
 
@@ -233,27 +273,18 @@ export default function AuthPage() {
         />
 
         <div className="relative h-[26rem] w-72">
-          <div className="absolute inset-0 -rotate-[10deg] rounded-2xl bg-mtg shadow-xl" />
-          <div className="absolute inset-0 rotate-[8deg] rounded-2xl bg-primary shadow-xl" />
-          <div className="absolute inset-0 flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-card-foreground">Carte vedette</span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                TCG
-              </span>
-            </div>
-            <div className="flex-1 rounded-xl bg-gradient-to-br from-primary/15 via-warning/10 to-mtg/15" />
-            <div className="space-y-1.5">
-              <div className="h-2 w-3/4 rounded-full bg-muted" />
-              <div className="h-2 w-1/2 rounded-full bg-muted" />
-            </div>
-          </div>
-          
-          <img
-            src={pokemonCard}
-            alt="Carte Pokémon"
-            className="absolute inset-0 h-full w-full rounded-2xl object-cover shadow-2xl"
-          />
+          {cardSlots.map((slotClass, index) => {
+            const content = SHUFFLED_CONTENTS[index];
+            return (
+              <img
+                key={index}
+                src={content.image}
+                alt=""
+                aria-hidden="true"
+                className={`absolute inset-0 ${slotClass} rounded-2xl object-cover shadow-xl`}
+              />
+            );
+          })}
         </div>
 
         <div className="absolute inset-x-12 bottom-12 text-primary-foreground">
@@ -261,7 +292,7 @@ export default function AuthPage() {
             Toute ta collection, classée au même endroit.
           </h2>
           <p className="mt-2 text-sm text-primary-foreground/80">
-            Magic, Yu-Gi-Oh!, Riftbound et toutes tes autres cartes — recherche, suivi et
+            Pokémon, Magic : l'Assemblée, et toutes tes autres cartes — recherche, suivi et
             organisation simplifiés.
           </p>
         </div>
