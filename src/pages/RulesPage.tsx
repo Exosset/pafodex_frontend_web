@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { Sidebar } from "@/components/home/Sidebar";
 import { TopBar } from "@/components/home/TopBar";
 import { Modal } from "@/components/common/Modal";
+import { SiteFooter } from "@/components/common/SiteFooter";
 
 const RULES_CARDS = [
   {
@@ -133,10 +134,10 @@ export default function RulesPage() {
     <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar activeItem="regles" userName="Utilisateur" />
 
-      <div className="flex-1 pl-64">
+      <div className="flex min-h-screen flex-1 flex-col pl-[var(--sidebar-width)] transition-[padding] duration-200">
         <TopBar title="Règles des TCG" greeting="Consulte les règles officielles des jeux disponibles" />
 
-        <main className="px-8 py-8">
+        <main className="flex-1 px-8 py-8">
           <div className="mb-6">
             <p className="text-sm text-muted-foreground">Guide officiel</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">Choisis un jeu</h1>
@@ -161,6 +162,8 @@ export default function RulesPage() {
             ))}
           </div>
         </main>
+
+        <SiteFooter />
       </div>
 
       {selectedGame && (

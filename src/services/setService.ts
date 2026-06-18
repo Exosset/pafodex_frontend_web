@@ -105,3 +105,19 @@ export async function removeCardFromSet(setId: number, cardId: number): Promise<
 
     throw new Error(lastError);
 }
+
+export async function deleteSet(setId: number): Promise<void> {
+    const token = localStorage.getItem("apiToken");
+
+    const res = await fetch(`${API_URL}/me/sets/${setId}`, {
+        method: "DELETE",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error ?? "Impossible de supprimer la collection.");
+    }
+}

@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import type { Card } from "@/types/card";
 
@@ -10,25 +11,140 @@ export function LibraryCard({
   card,
   onAddToSet,
   onRemove,
+  onDeleteFromLibrary,
   isRemoving = false,
+  isDeletingFromLibrary = false,
   onCardClick,
 }: {
   card: Card;
   onAddToSet?: () => void;
   onRemove?: () => void;
+  onDeleteFromLibrary?: () => void;
   isRemoving?: boolean;
+  isDeletingFromLibrary?: boolean;
   onCardClick?: () => void;
 }) {
+  const DELETE_ACTION_HEIGHT = 56;
+  const OPEN_THRESHOLD = 24;
+
   const { name, extension, number, image, gameType } = card;
   const accent = GAME_ACCENT_VAR[gameType.nom] ?? "var(--color-primary)";
+  const [isDeleteRevealed, setIsDeleteRevealed] = useState(false);
+  const [isDraggingDelete, setIsDraggingDelete] = useState(false);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+
+  const pointerStartYRef = useRef<number | null>(null);
+  const startOffsetYRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+
+  const currentOffsetY = isDraggingDelete
+    ? dragOffsetY
+    : isDeleteRevealed
+      ? -DELETE_ACTION_HEIGHT
+      : 0;
+  const deleteRevealProgress = Math.min(1, Math.max(0, -currentOffsetY / DELETE_ACTION_HEIGHT));
+
+  function beginDeleteSlide(clientY: number) {
+    pointerStartYRef.current = clientY;
+    startOffsetYRef.current = isDeleteRevealed ? -DELETE_ACTION_HEIGHT : 0;
+    hasDraggedRef.current = false;
+    setIsDraggingDelete(true);
+    setDragOffsetY(startOffsetYRef.current);
+  }
+
+  function moveDeleteSlide(clientY: number) {
+    if (pointerStartYRef.current === null) return;
+
+    const deltaY = clientY - pointerStartYRef.current;
+    if (Math.abs(deltaY) > 4) {
+      hasDraggedRef.current = true;
+    }
+
+    const rawOffset = startOffsetYRef.current + deltaY;
+    const boundedOffset = Math.max(-DELETE_ACTION_HEIGHT, Math.min(0, rawOffset));
+    setDragOffsetY(boundedOffset);
+  }
+
+  function endDeleteSlide() {
+    if (!isDraggingDelete) return;
+
+    const shouldReveal = dragOffsetY <= -OPEN_THRESHOLD;
+    setIsDeleteRevealed(shouldReveal);
+    setDragOffsetY(shouldReveal ? -DELETE_ACTION_HEIGHT : 0);
+    setIsDraggingDelete(false);
+    pointerStartYRef.current = null;
+  }
 
   return (
-    <button
-      type="button"
-      onClick={() => onCardClick?.()}
-      style={{ "--accent": accent } as React.CSSProperties}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[var(--accent)]/10"
-    >
+    <div className="group relative overflow-hidden rounded-2xl">
+      {onDeleteFromLibrary && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteFromLibrary();
+          }}
+          disabled={isDeletingFromLibrary}
+          aria-label={`Supprimer ${name} de la bibliothèque`}
+          className="absolute inset-x-0 bottom-0 z-10 flex h-14 items-center justify-center bg-destructive px-4 text-sm font-semibold text-destructive-foreground transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+          style={{
+            transform: `translateY(${(1 - deleteRevealProgress) * 100}%)`,
+            opacity: deleteRevealProgress,
+          }}
+        >
+          Supprimer la carte
+        </button>
+      )}
+
+      <div
+        role={onCardClick ? "button" : undefined}
+        tabIndex={onCardClick ? 0 : undefined}
+        onClick={() => {
+          if (hasDraggedRef.current) {
+            hasDraggedRef.current = false;
+            return;
+          }
+          onCardClick?.();
+        }}
+        onKeyDown={(e) => {
+          if (!onCardClick) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onCardClick();
+          }
+        }}
+        onPointerDown={(e) => {
+          if (!onDeleteFromLibrary) return;
+          const target = e.target as HTMLElement;
+          if (target.closest("button")) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          beginDeleteSlide(e.clientY);
+        }}
+        onPointerMove={(e) => {
+          if (!onDeleteFromLibrary) return;
+          moveDeleteSlide(e.clientY);
+        }}
+        onPointerUp={(e) => {
+          if (!onDeleteFromLibrary) return;
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          endDeleteSlide();
+        }}
+        onPointerCancel={(e) => {
+          if (!onDeleteFromLibrary) return;
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          endDeleteSlide();
+        }}
+        className="relative z-20 flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-[transform,box-shadow] duration-300 hover:shadow-xl hover:shadow-[var(--accent)]/10 select-none touch-none cursor-grab active:cursor-grabbing"
+        style={{
+          "--accent": accent,
+          transform: `translateY(${currentOffsetY}px)`,
+        } as React.CSSProperties}
+        onDragStart={(e) => e.preventDefault()}
+      >
       {onAddToSet && (
         <button
           type="button"
@@ -52,7 +168,7 @@ export function LibraryCard({
           }}
           disabled={isRemoving}
           aria-label={`Retirer ${name} de la collection`}
-          className="absolute right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
+          className="pointer-events-none absolute right-3 top-3 z-40 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm opacity-0 transition hover:bg-background group-hover:pointer-events-auto group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Minus size={16} />
         </button>
@@ -81,6 +197,7 @@ export function LibraryCard({
           <img
             src={image}
             alt={name}
+            draggable={false}
             className="relative z-10 h-full w-full object-contain p-4 drop-shadow-md transition-transform duration-300 group-hover:scale-[1.04]"
           />
         ) : (
@@ -121,6 +238,7 @@ export function LibraryCard({
           </p>
         </div>
       </div>
-    </button>
+      </div>
+    </div>
   );
 }

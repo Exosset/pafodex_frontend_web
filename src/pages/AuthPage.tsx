@@ -3,7 +3,7 @@ import { Eye, EyeOff, Mail, Lock, User2, Loader2 } from "lucide-react";
 import { buildAuthConnexion, buildAuthInscription } from "../mappers/authMapper";
 import { validateLogin, validateRegister, type ValidationErrors } from "../validators/authValidator";
 import { login, register } from "../services/authService";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo.png";
 import pokemonCard from "@/assets/pokemon.png";
 
@@ -147,11 +147,6 @@ export default function AuthPage() {
                 <label htmlFor="password" className="text-sm font-medium">
                   Mot de passe
                 </label>
-                {mode === "login" && (
-                  <a href="#" className="text-sm font-medium text-primary hover:underline">
-                    Mot de passe oublié ?
-                  </a>
-                )}
               </div>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -215,6 +210,14 @@ export default function AuthPage() {
                 </button>
               </>
             )}
+          </p>
+
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            En continuant, tu acceptes notre{" "}
+            <Link to="/privacy-policy" className="font-medium text-primary hover:underline">
+              politique de confidentialité
+            </Link>
+            .
           </p>
         </div>
       </div>
