@@ -1,4 +1,4 @@
-export type GameTag = "POKEMON" | "MTG" | "RiftBound";
+export type GameTag = "MTG" | "RiftBound";
 
 export interface CollectionSummary {
   id: string;

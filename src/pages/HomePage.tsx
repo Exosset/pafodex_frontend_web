@@ -208,7 +208,15 @@ export default function HomePage() {
                           navigate(
                             `/card/${encodeURIComponent(card.name)}?setCode=${encodeURIComponent(
                               card.extension
-                            )}&gameTypeId=${card.gameType.id}`
+                            )}&gameTypeId=${card.gameType.id}&gameTypeName=${encodeURIComponent(
+                              card.gameType.nom
+                            )}&apiSource=${encodeURIComponent(
+                              card.gameType.nom.toLowerCase().includes("rift")
+                                ? "riftbound"
+                                : card.gameType.nom.toLowerCase().includes("yu") || card.gameType.nom.toLowerCase().includes("ygo")
+                                  ? "yugioh"
+                                  : "magic"
+                            )}&libraryCardId=${card.id}&ownedNumber=${card.number}&isFavorite=${card.isFavorite ? "1" : "0"}`
                           )
                       }
                     />

@@ -2,8 +2,6 @@ import { Minus, Plus } from "lucide-react";
 import type { Card } from "@/types/card";
 
 const GAME_ACCENT_VAR: Record<string, string> = {
-  Pokémon: "var(--color-pokemon)",
-  Pokemon: "var(--color-pokemon)",
   "Magic The Gathering": "var(--color-mtg)",
   Magic: "var(--color-mtg)",
 };

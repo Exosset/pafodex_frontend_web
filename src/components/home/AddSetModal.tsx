@@ -100,7 +100,7 @@ export function AddSetModal({ isOpen, onClose, onSetCreated }: AddSetModalProps)
             id="set-name"
             name="name"
             type="text"
-            placeholder="Pokémon 151"
+            placeholder="Collection 151"
             className={`w-full rounded-lg border bg-card px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring ${
               fieldErrors.name ? "border-destructive" : "border-border"
             }`}
