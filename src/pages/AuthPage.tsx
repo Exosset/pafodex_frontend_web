@@ -292,7 +292,7 @@ export default function AuthPage() {
             Toute ta collection, classée au même endroit.
           </h2>
           <p className="mt-2 text-sm text-primary-foreground/80">
-            Pokémon, Magic : l'Assemblée, et toutes tes autres cartes — recherche, suivi et
+            Magic : l'Assemblée, et toutes tes autres cartes — recherche, suivi et
             organisation simplifiés.
           </p>
         </div>
