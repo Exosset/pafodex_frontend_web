@@ -136,7 +136,7 @@ export default function AuthPage() {
               label={mode === "login" ? "E-mail" : "E-mail"}
               name="mail"
               type={mode === "login" ? "text" : "email"}
-              placeholder={mode === "login" ? "sacha@pokemon.fr" : "sacha@pokemon.fr"}
+              placeholder={mode === "login" ? "utilisateur@exemple.com" : "utilisateur@exemple.com"}
               icon={<Mail size={16} />}
               error={errors.mail}
             />
@@ -231,20 +231,15 @@ export default function AuthPage() {
 
         <div className="relative h-[26rem] w-72">
           <div className="absolute inset-0 -rotate-[10deg] rounded-2xl bg-mtg shadow-xl" />
-          <div className="absolute inset-0 rotate-[8deg] rounded-2xl bg-pokemon shadow-xl" />
-          {/*
-            Ancien placeholder de carte (faux contenu factice avec titre,
-            badge et blocs gris) — gardé en commentaire au cas où l'image
-            réelle ne serait pas disponible ou pour revenir en arrière.
-
+          <div className="absolute inset-0 rotate-[8deg] rounded-2xl bg-primary shadow-xl" />
           <div className="absolute inset-0 flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-card-foreground">Dracaufeu</span>
-              <span className="rounded-full bg-pokemon/10 px-2 py-0.5 text-xs font-medium text-pokemon">
-                Feu
+              <span className="text-sm font-semibold text-card-foreground">Carte vedette</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                TCG
               </span>
             </div>
-            <div className="flex-1 rounded-xl bg-gradient-to-br from-pokemon/15 via-warning/10 to-primary/15" />
+            <div className="flex-1 rounded-xl bg-gradient-to-br from-primary/15 via-warning/10 to-mtg/15" />
             <div className="space-y-1.5">
               <div className="h-2 w-3/4 rounded-full bg-muted" />
               <div className="h-2 w-1/2 rounded-full bg-muted" />
@@ -263,7 +258,7 @@ export default function AuthPage() {
             Toute ta collection, classée au même endroit.
           </h2>
           <p className="mt-2 text-sm text-primary-foreground/80">
-            Pokémon, Magic : l'Assemblée, et toutes tes autres cartes — recherche, suivi et
+            Magic, Yu-Gi-Oh!, Riftbound et toutes tes autres cartes — recherche, suivi et
             organisation simplifiés.
           </p>
         </div>
