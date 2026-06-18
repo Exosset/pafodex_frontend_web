@@ -15,3 +15,7 @@ export interface AuthResponse {
     id?: number;
     error?: string
 }
+
+export interface Logout {
+    success: boolean
+}

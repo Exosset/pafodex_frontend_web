@@ -5,6 +5,7 @@ import { validateLogin, validateRegister, type ValidationErrors } from "../valid
 import { login, register } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo.png";
+import pokemonCard from "@/assets/pokemon.png";
 
 type Mode = "login" | "register";
 
@@ -228,9 +229,14 @@ export default function AuthPage() {
           }}
         />
 
-        <div className="relative h-72 w-52">
+        <div className="relative h-[26rem] w-72">
           <div className="absolute inset-0 -rotate-[10deg] rounded-2xl bg-mtg shadow-xl" />
           <div className="absolute inset-0 rotate-[8deg] rounded-2xl bg-pokemon shadow-xl" />
+          {/*
+            Ancien placeholder de carte (faux contenu factice avec titre,
+            badge et blocs gris) — gardé en commentaire au cas où l'image
+            réelle ne serait pas disponible ou pour revenir en arrière.
+
           <div className="absolute inset-0 flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-card-foreground">Dracaufeu</span>
@@ -244,6 +250,12 @@ export default function AuthPage() {
               <div className="h-2 w-1/2 rounded-full bg-muted" />
             </div>
           </div>
+          */}
+          <img
+            src={pokemonCard}
+            alt="Carte Pokémon"
+            className="absolute inset-0 h-full w-full rounded-2xl object-cover shadow-2xl"
+          />
         </div>
 
         <div className="absolute inset-x-12 bottom-12 text-primary-foreground">
