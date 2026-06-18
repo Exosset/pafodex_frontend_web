@@ -1,9 +1,9 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Eye, EyeOff, Mail, Lock, User2, Loader2 } from "lucide-react";
 import { buildAuthConnexion, buildAuthInscription } from "../mappers/authMapper";
 import { validateLogin, validateRegister, type ValidationErrors } from "../validators/authValidator";
 import { login, register } from "../services/authService";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo.png";
 import pokemonCard from "@/assets/pokemon.png";
 import martintintinCard from "@/assets/Martintintin.png";
@@ -48,16 +48,15 @@ const cardSlots = [
   "rotate-[30deg] translate-x-9",
 ];
 
-// Mélangé une seule fois au chargement du module (donc à chaque vrai rechargement
-// de page) : détermine quelle carte occupe quel emplacement.
-const SHUFFLED_CONTENTS = shuffleArray(cardContents);
-
 export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shuffledContents, setShuffledContents] = useState(() => shuffleArray(cardContents));
+  const [isShufflingCards, setIsShufflingCards] = useState(false);
+  const shuffleTimersRef = useRef<number[]>([]);
 
   const navigate = useNavigate();
 
@@ -105,6 +104,30 @@ export default function AuthPage() {
     setErrors({});
     setApiError(null);
   };
+
+  useEffect(() => {
+    return () => {
+      shuffleTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      shuffleTimersRef.current = [];
+    };
+  }, []);
+
+  function handleShuffleCards() {
+    if (isShufflingCards) return;
+
+    setIsShufflingCards(true);
+
+    const shuffleContentTimer = window.setTimeout(() => {
+      setShuffledContents((previous) => shuffleArray(previous));
+    }, 180);
+
+    const endAnimationTimer = window.setTimeout(() => {
+      setIsShufflingCards(false);
+      shuffleTimersRef.current = [];
+    }, 700);
+
+    shuffleTimersRef.current = [shuffleContentTimer, endAnimationTimer];
+  }
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -190,11 +213,6 @@ export default function AuthPage() {
                 <label htmlFor="password" className="text-sm font-medium">
                   Mot de passe
                 </label>
-                {mode === "login" && (
-                  <a href="#" className="text-sm font-medium text-primary hover:underline">
-                    Mot de passe oublié ?
-                  </a>
-                )}
               </div>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -259,6 +277,14 @@ export default function AuthPage() {
               </>
             )}
           </p>
+
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            En continuant, tu acceptes notre{" "}
+            <Link to="/privacy-policy" className="font-medium text-primary hover:underline">
+              politique de confidentialité
+            </Link>
+            .
+          </p>
         </div>
       </div>
 
@@ -272,19 +298,29 @@ export default function AuthPage() {
           }}
         />
 
-        <div className="relative h-[26rem] w-72">
+        <div
+          className="relative h-[26rem] w-72 cursor-pointer select-none"
+          onClick={handleShuffleCards}
+          title="Clique pour mélanger le tas de cartes"
+        >
           {cardSlots.map((slotClass, index) => {
-            const content = SHUFFLED_CONTENTS[index];
+            const content = shuffledContents[index];
             return (
               <img
                 key={index}
                 src={content.image}
                 alt=""
                 aria-hidden="true"
-                className={`absolute inset-0 ${slotClass} rounded-2xl object-cover shadow-xl`}
+                className={`absolute inset-0 ${slotClass} rounded-2xl object-cover shadow-xl ${
+                  isShufflingCards ? "animate-[auth-card-shuffle_700ms_cubic-bezier(0.22,1,0.36,1)]" : ""
+                }`}
+                style={{ animationDelay: isShufflingCards ? `${index * 25}ms` : undefined }}
               />
             );
           })}
+          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs text-primary-foreground/80">
+            Clique pour mélanger
+          </div>
         </div>
 
         <div className="absolute inset-x-12 bottom-12 text-primary-foreground">
@@ -297,6 +333,26 @@ export default function AuthPage() {
           </p>
         </div>
       </div>
+
+      <style>{`
+        @keyframes auth-card-shuffle {
+          0% {
+            transform: translateY(0) scale(1) rotate(0deg);
+          }
+          20% {
+            transform: translateY(-10px) scale(1.02) rotate(-3deg);
+          }
+          45% {
+            transform: translateY(12px) scale(0.98) rotate(4deg);
+          }
+          70% {
+            transform: translateY(-5px) scale(1.01) rotate(-2deg);
+          }
+          100% {
+            transform: translateY(0) scale(1) rotate(0deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }
