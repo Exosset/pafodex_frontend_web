@@ -5,7 +5,7 @@ import { TopBar } from "@/components/home/TopBar";
 import { SetCard } from "@/components/home/SetCard";
 import { AddSetModal } from "@/components/home/AddSetModal";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { fetchCurrentUserCardSet } from "@/services/libraryService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Set } from "@/types/set";
 

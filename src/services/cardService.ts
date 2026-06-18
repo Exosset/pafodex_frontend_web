@@ -133,9 +133,7 @@ export async function fetchScryfallCardDetail(
         params.set("set", setCode.trim());
     }
 
-    const res = await fetch(
-        `${SCRYFALL_API_URL}/cards/named?${params.toString()}`
-    );
+    const res = await fetch(`${SCRYFALL_API_URL}/cards/named?${params.toString()}`);
 
     if (!res.ok) {
         if (res.status === 404) return null;
