@@ -173,21 +173,15 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
     }
   }
 
-  function handleSelectResult(card: ScryfallCard) {
-    if (!selectedGameType || libraryId === null) return;
+  function handleSelectResult(result: ExternalSearchResult) {
+      if (!selectedGameType || libraryId === null) return;
 
-    const currentGameTypeId = selectedGameType.id;
-    const currentLibraryId = libraryId;
-
-    // Chaque API externe a son propre mapper, qui traduit sa réponse
-    // vers la forme AddCard attendue par le backend.
-    async function applySelection() {
       const mapped =
         result.source === "MAGIC"
-          ? mapperAPIScryfall(result.card, currentGameTypeId, currentLibraryId)
+          ? mapperAPIScryfall(result.card, selectedGameType.id, libraryId)
           : result.source === "YUGIOH"
-              ? mapperAPIYugioh(result.card, currentGameTypeId, currentLibraryId)
-              : mapperAPIRiftbound(result.card, currentGameTypeId, currentLibraryId);
+            ? mapperAPIYugioh(result.card, selectedGameType.id, libraryId)
+            : mapperAPIRiftbound(result.card, selectedGameType.id, libraryId);
 
       setNameValue(mapped.name);
       setExtension(mapped.extension);
@@ -196,9 +190,6 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
       setHasSelectedExternalCard(true);
       setIsSearchOpen(false);
       setSearchResults([]);
-    }
-
-    void applySelection();
   }
 
   function handleGameTypeChange(value: string) {
