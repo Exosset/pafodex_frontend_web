@@ -1,12 +1,13 @@
 import { buildGameType } from "@/mappers/gameTypeMapper";
 import type { DataGameType, GameType } from "@/types/gameType";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+const API_URL = API_BASE_URL.endsWith("/api") ? API_BASE_URL : `${API_BASE_URL}/api`;
 
 export async function fetchGameTypes(): Promise<GameType[]> {
     const token = localStorage.getItem("apiToken");
 
-    const res = await fetch(`${API_URL}api/gametype`, {
+    const res = await fetch(`${API_URL}/gametype`, {
         headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -16,10 +17,7 @@ export async function fetchGameTypes(): Promise<GameType[]> {
 
     const response: DataGameType = await res.json();
 
-    console.log("fetchGameTypes: ",response)
-
     if (!Array.isArray(response.data)) {
-        console.error("Format inattendu pour /gameTypes:", response);
         return [];
     }
 

@@ -6,8 +6,10 @@ import { LibraryCard } from "@/components/home/LibraryCard";
 import { PaginationControls } from "@/components/home/PaginationControls";
 import { AddCardModal } from "@/components/home/AddCardModal";
 import { AddSetModal } from "@/components/home/AddSetModal";
+import { Modal } from "@/components/common/Modal";
 import { fetchCurrentUser } from "@/services/userService";
 import { fetchCurrentUserCardSet } from "@/services/cardSetService";
+import { addCardToSet } from "@/services/setService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
 import type { Set } from "@/types/set";
@@ -35,16 +37,17 @@ export default function HomePage() {
   // ----- Modals -----
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
   const [isAddSetOpen, setIsAddSetOpen] = useState(false);
+  const [isAddToSetOpen, setIsAddToSetOpen] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [isAddingToSet, setIsAddingToSet] = useState(false);
+  const [addToSetError, setAddToSetError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCurrentUser()
       .then(setUser)
-      .catch((err) => {
-        console.error(err);
+      .catch(() => {
         localStorage.setItem('apiToken', "")
         navigate("/");
-        
-        // TODO: rediriger vers /login si le token est invalide/expiré
       })
       .finally(() => setIsLoadingUser(false));
   }, []);
@@ -88,6 +91,33 @@ export default function HomePage() {
   function handleSetCreated(newSet: Set) {
     setSets((prev) => [newSet, ...prev]);
   }
+
+  function openAddToSetModal(card: Card) {
+    setSelectedCard(card);
+    setAddToSetError(null);
+    setIsAddToSetOpen(true);
+  }
+
+  async function handleAddCardToSet(setId: number) {
+    if (!selectedCard) return;
+
+    setIsAddingToSet(true);
+    setAddToSetError(null);
+
+    try {
+      await addCardToSet(setId, selectedCard.id);
+      setIsAddToSetOpen(false);
+      setSelectedCard(null);
+    } catch (err) {
+      setAddToSetError(err instanceof Error ? err.message : "Impossible d'ajouter la carte.");
+    } finally {
+      setIsAddingToSet(false);
+    }
+  }
+
+  const matchingSets = selectedCard
+    ? sets.filter((set) => set.gameType.id === selectedCard.gameType.id)
+    : [];
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -169,7 +199,19 @@ export default function HomePage() {
               <>
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                   {cards.map((card) => (
-                    <LibraryCard key={card.id} card={card} />
+                    <LibraryCard
+                      key={card.id}
+                      card={card}
+                      onAddToSet={() => openAddToSetModal(card)}
+                      onCardClick={
+                        () =>
+                          navigate(
+                            `/card/${encodeURIComponent(card.name)}?setCode=${encodeURIComponent(
+                              card.extension
+                            )}&gameTypeId=${card.gameType.id}`
+                          )
+                      }
+                    />
                   ))}
                 </div>
 
@@ -192,6 +234,46 @@ export default function HomePage() {
         onClose={() => setIsAddSetOpen(false)}
         onSetCreated={handleSetCreated}
       />
+
+      <Modal
+        isOpen={isAddToSetOpen}
+        onClose={() => {
+          setIsAddToSetOpen(false);
+          setSelectedCard(null);
+          setAddToSetError(null);
+        }}
+        title={selectedCard ? `Ajouter ${selectedCard.name}` : "Ajouter à une collection"}
+      >
+        {addToSetError && (
+          <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {addToSetError}
+          </div>
+        )}
+
+        {matchingSets.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Aucune collection disponible pour ce jeu.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {matchingSets.map((set) => (
+              <button
+                key={set.id}
+                type="button"
+                onClick={() => handleAddCardToSet(set.id)}
+                disabled={isAddingToSet}
+                className="flex w-full items-center justify-between rounded-xl border border-border bg-secondary/50 px-4 py-3 text-left transition-colors hover:bg-secondary"
+              >
+                <div>
+                  <p className="font-medium text-foreground">{set.name}</p>
+                  <p className="text-xs text-muted-foreground">{set.gameType.name}</p>
+                </div>
+                <span className="text-sm text-primary">Choisir</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -1,9 +1,9 @@
-import { Home, Layers, BookOpen, Settings } from "lucide-react";
+import { Home, Layers, BookOpen, Settings, ScrollText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo.png";
 
 export interface SidebarProps {
-  activeItem?: "accueil" | "bibliotheque" | "collections" | "parametres";
+  activeItem?: "accueil" | "bibliotheque" | "collections" | "regles" | "parametres";
   userName: string;
 }
 
@@ -11,6 +11,7 @@ const navItems = [
   { key: "accueil", label: "Accueil", icon: Home, path: "/home" },
   { key: "collections", label: "Collections", icon: Layers, path: "/collections" },
   { key: "bibliotheque", label: "Bibliothèque", icon: BookOpen, path: "/library" },
+  { key: "regles", label: "Règles", icon: ScrollText, path: "/rules" },
   { key: "parametres", label: "Paramètres", icon: Settings, path: "/parametres" },
 ] as const;
 
