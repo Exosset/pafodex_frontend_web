@@ -149,7 +149,7 @@ export function AddCardModal({ isOpen, onClose, onCardCreated }: AddCardModalPro
   }, [isOpen]);
 
   async function handleSearch() {
-    if (!nameValue.trim() || !isMtgSelected) return;
+    if (!nameValue.trim() || !hasExternalSearch) return;
 
     setIsSearching(true);
     setSearchError(null);
