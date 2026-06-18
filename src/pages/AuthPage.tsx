@@ -70,9 +70,9 @@ export default function AuthPage() {
           {/* Logo */}
           <div className="mb-10 flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center text-primary-foreground">
-              <img src={logo} alt="Deckhaus" className="h-9 w-9 rounded-full object-cover" />
+              <img src={logo} alt="PAF'O'Dex" className="h-9 w-9 rounded-full object-cover" />
             </div>
-            <span className="text-lg font-semibold tracking-tight">Pafodex</span>
+            <span className="text-lg font-semibold tracking-tight">PAF'O'Dex</span>
           </div>
 
           {/* Titre */}

@@ -23,9 +23,9 @@ export function Sidebar({ activeItem = "accueil", userName }: SidebarProps) {
       <div>
         {/* Logo */}
         <div className="mb-8 flex items-center gap-3 px-2">
-          <img src={logo} alt="Deckhaus" className="h-9 w-9 rounded-full object-cover" />
+          <img src={logo} alt="PAF'O'Dex" className="h-9 w-9 rounded-full object-cover" />
           <div>
-            <p className="text-base font-semibold leading-tight text-foreground">Deckhaus</p>
+            <p className="text-base font-semibold leading-tight text-foreground">PAF'O'Dex</p>
             <p className="text-xs text-muted-foreground">TCG Manager</p>
           </div>
         </div>
