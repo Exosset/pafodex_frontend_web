@@ -17,6 +17,7 @@ export interface AddCard {
     image: string
     gameTypeId: number;
     libraryId: number;
+    hasSelectedExternalCard: boolean;
 }
 
 export interface ScryfallCard {
@@ -79,11 +80,4 @@ export interface ScryfallSearchResponse {
     total_cards?: number;
     data?: ScryfallCard[];
     details?: string; // présent en cas d'erreur (ex: "no cards found")
-}
-
-export interface TcgdexCard {
-    id: string;
-    localId: string;
-    name: string;
-    image: string;
 }

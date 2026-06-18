@@ -4,6 +4,8 @@ import HomePage from './pages/HomePage'
 import SetPage from './pages/SetPage'
 import CardDetailPage from './pages/CardDetailPage'
 import RulesPage from './pages/RulesPage'
+import CollectionsPage from './pages/CollectionPage'
+import LibraryPage from './pages/LibraryPage'
 
 function App() {
   return (

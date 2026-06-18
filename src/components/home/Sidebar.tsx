@@ -9,13 +9,13 @@ export interface SidebarProps {
 
 const navItems = [
   { key: "accueil", label: "Accueil", icon: Home, path: "/home" },
-  { key: "collections", label: "Collections", icon: Layers, path: "/home" },
-  { key: "bibliotheque", label: "Bibliothèque", icon: BookOpen, path: "/home" },
+  { key: "collections", label: "Collections", icon: Layers, path: "/collections" },
+  { key: "bibliotheque", label: "Bibliothèque", icon: BookOpen, path: "/library" },
   { key: "regles", label: "Règles", icon: ScrollText, path: "/rules" },
-  { key: "parametres", label: "Paramètres", icon: Settings, path: "/home" },
+  { key: "parametres", label: "Paramètres", icon: Settings, path: "/parametres" },
 ] as const;
 
-export function Sidebar({ activeItem = "accueil", userName}: SidebarProps) {
+export function Sidebar({ activeItem = "accueil", userName }: SidebarProps) {
   const navigate = useNavigate();
 
   return (
