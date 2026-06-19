@@ -1,15 +1,44 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Copy, Check } from "lucide-react";
 import { Sidebar } from "@/components/home/Sidebar";
 import { TopBar } from "@/components/home/TopBar";
 import { LibraryCard } from "@/components/home/LibraryCard";
 import { SiteFooter } from "@/components/common/SiteFooter";
+import { Modal } from "@/components/common/Modal";
 import { fetchCurrentUser } from "@/services/userService";
 import { removeCardFromSet } from "@/services/setService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
 import type { Set } from "@/types/set";
+
+function normalizeGameTypeName(value: string): string {
+  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function isMagicGameType(set: Set | null, cards: Card[]): boolean {
+  // Détection uniquement par nom (jamais par ID).
+  const rawSetGameType = set?.gameType as { name?: string; nom?: string } | undefined;
+  const setGameTypeName = normalizeGameTypeName(rawSetGameType?.name ?? rawSetGameType?.nom ?? "");
+
+  if (setGameTypeName.includes("magic") || setGameTypeName.includes("mtg")) {
+    return true;
+  }
+
+  // Fallback robuste si la réponse set n'expose pas correctement le gameType.
+  const cardGameTypeName = normalizeGameTypeName(cards[0]?.gameType?.nom ?? "");
+  return cardGameTypeName.includes("magic") || cardGameTypeName.includes("mtg");
+}
+
+function buildArchidektContent(cards: Card[]): string {
+  return cards
+    .map((card) => {
+      const qty = card.numberCard > 0 ? card.numberCard : 1;
+      const setCode = card.extension ? ` (${card.extension.toUpperCase()})` : "";
+      return `${qty} ${card.name}${setCode}`;
+    })
+    .join("\n");
+}
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 const API_URL = API_BASE_URL.endsWith("/api") ? API_BASE_URL : `${API_BASE_URL}/api`;
@@ -24,6 +53,24 @@ export default function SetPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingCardId, setRemovingCardId] = useState<number | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [isArchidektOpen, setIsArchidektOpen] = useState(false);
+  const archidektContent = buildArchidektContent(cards);
+  const canExportArchidekt = cards.length > 0 && isMagicGameType(setDetails, cards);
+
+  function handleCopyInModal() {
+    if (typeof navigator.clipboard?.writeText === "function") {
+      navigator.clipboard.writeText(archidektContent).then(() => {
+        setCopySuccess(true);
+        window.setTimeout(() => setCopySuccess(false), 2500);
+      }).catch(() => {});
+    } else {
+      const el = document.getElementById("archidekt-textarea") as HTMLTextAreaElement | null;
+      if (el) { el.select(); document.execCommand("copy"); }
+      setCopySuccess(true);
+      window.setTimeout(() => setCopySuccess(false), 2500);
+    }
+  }
 
   useEffect(() => {
     fetchCurrentUser()
@@ -127,11 +174,23 @@ export default function SetPage() {
             <p className="mt-6 text-sm text-muted-foreground">Chargement...</p>
           ) : (
             <>
-              <div className="mb-6">
-                <p className="text-sm text-muted-foreground">Collection</p>
-                <h1 className="text-3xl font-semibold tracking-tight">
-                  {setDetails?.name ?? "Collection"}
-                </h1>
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Collection</p>
+                  <h1 className="text-3xl font-semibold tracking-tight">
+                    {setDetails?.name ?? "Collection"}
+                  </h1>
+                </div>
+
+                {canExportArchidekt && (
+                  <button
+                    type="button"
+                    onClick={() => setIsArchidektOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+                  >
+                    Exporter pour Archidekt
+                  </button>
+                )}
               </div>
 
               {cards.length === 0 ? (
@@ -170,6 +229,38 @@ export default function SetPage() {
 
         <SiteFooter />
       </div>
+
+      <Modal
+        isOpen={isArchidektOpen && canExportArchidekt}
+        onClose={() => { setIsArchidektOpen(false); setCopySuccess(false); }}
+        title={`Export Archidekt — ${setDetails?.name ?? "Collection"}`}
+      >
+        <p className="mb-3 text-sm text-muted-foreground">
+          Copie ce texte et colle-le dans Archidekt via <strong>Import &gt; Text</strong>.
+        </p>
+        <textarea
+          id="archidekt-textarea"
+          readOnly
+          value={archidektContent}
+          rows={Math.min(20, cards.length + 2)}
+          className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+          onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+        />
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={handleCopyInModal}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              copySuccess
+                ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+                : "bg-primary text-primary-foreground hover:opacity-90"
+            }`}
+          >
+            {copySuccess ? <Check size={16} /> : <Copy size={16} />}
+            {copySuccess ? "Copié !" : "Copier tout"}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

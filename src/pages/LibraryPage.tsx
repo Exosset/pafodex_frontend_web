@@ -7,12 +7,14 @@ import { PaginationControls } from "@/components/home/PaginationControls";
 import { AddCardModal } from "@/components/home/AddCardModal";
 import { SiteFooter } from "@/components/common/SiteFooter";
 import { fetchCurrentUser } from "@/services/userService";
-import { fetchCurrentUserCardSet } from "@/services/libraryService";
-import { deleteLibraryCard } from "@/services/cardService";
+import { fetchCurrentUserCardSet, fetchSearchCurrentLibrary } from "@/services/libraryService";
+import { deleteLibraryCard, updateOwnedCardMetadata } from "@/services/cardService";
 import type { CurrentUserProfile } from "@/types/user";
 import type { Card } from "@/types/card";
+import { useNavigate } from "react-router-dom";
 
 export default function LibraryPage() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<CurrentUserProfile | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
@@ -24,6 +26,11 @@ export default function LibraryPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
   const [deletingCardId, setDeletingCardId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const isSearching = searchQuery.trim() !== "";
+  const [favoritingCardId, setFavoritingCardId] = useState<number | null>(null);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [selectedGameTypeId, setSelectedGameTypeId] = useState<number | null>(null);
 
   // ----- Modal d'ajout de carte -----
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
@@ -39,6 +46,8 @@ export default function LibraryPage() {
   }, []);
 
   useEffect(() => {
+    if (isSearching) return;
+
     let isCancelled = false;
 
     async function loadData() {
@@ -66,7 +75,44 @@ export default function LibraryPage() {
     return () => {
       isCancelled = true;
     };
-  }, [page]);
+  }, [page, isSearching]);
+
+  useEffect(() => {
+    if (!isSearching) return;
+
+    let isCancelled = false;
+
+    async function runSearch() {
+      setIsLoadingData(true);
+      setDataError(null);
+
+      try {
+        const result = await fetchSearchCurrentLibrary(searchQuery.trim(), 1);
+        if (isCancelled) return;
+
+        setCards(result.cards);
+        setCardsTotal(result.cards.length);
+        setTotalPages(1);
+        setPage(1);
+      } catch (err) {
+        if (isCancelled) return;
+        console.error(err);
+        setDataError("Impossible d'effectuer la recherche.");
+      } finally {
+        if (!isCancelled) setIsLoadingData(false);
+      }
+    }
+
+    runSearch();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [searchQuery, isSearching]);
+
+  function handleSearch(query: string) {
+    setSearchQuery(query);
+  }
 
   function handleCardCreated(newCard: Card) {
     setCards((prev) => [newCard, ...prev]);
@@ -89,6 +135,37 @@ export default function LibraryPage() {
     }
   }
 
+  async function handleToggleFavorite(card: Card) {
+    setFavoritingCardId(card.id);
+    setDataError(null);
+
+    try {
+      await updateOwnedCardMetadata(card.id, {
+        numberCard: card.numberCard > 0 ? card.numberCard : 1,
+        isFavorite: !card.isFavorite,
+      });
+
+      setCards((prev) =>
+        prev.map((item) =>
+          item.id === card.id ? { ...item, isFavorite: !item.isFavorite } : item
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      setDataError(err instanceof Error ? err.message : "Impossible de mettre à jour les favoris.");
+    } finally {
+      setFavoritingCardId(null);
+    }
+  }
+
+  const availableGameTypes = Array.from(
+    new Map(cards.map((c) => [c.gameType.id, c.gameType])).values()
+  ).sort((a, b) => a.nom.localeCompare(b.nom));
+
+  const displayedCards = cards
+    .filter((card) => !showFavoritesOnly || card.isFavorite)
+    .filter((card) => selectedGameTypeId === null || card.gameType.id === selectedGameTypeId);
+
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar
@@ -97,9 +174,24 @@ export default function LibraryPage() {
       />
 
       <div className="flex min-h-screen flex-1 flex-col pl-[var(--sidebar-width)] transition-[padding] duration-200">
-        <TopBar title="Bibliothèque" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} />
+        <TopBar title="Bibliothèque" greeting={`Bienvenue, ${user?.pseudo ?? "..."} 👋`} onSearch={handleSearch} />
 
         <main className="flex-1 px-8 py-6">
+          {isSearching && (
+            <div className="mb-6 flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-4 py-2.5">
+              <p className="text-sm text-foreground">
+                Résultats pour <span className="font-semibold">« {searchQuery} »</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => handleSearch("")}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Effacer
+              </button>
+            </div>
+          )}
+
           {dataError && (
             <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {dataError}
@@ -118,25 +210,87 @@ export default function LibraryPage() {
               >
                 <Plus size={16} />
               </button>
+              <button
+                type="button"
+                onClick={() => setShowFavoritesOnly((prev) => !prev)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  showFavoritesOnly
+                    ? "border-transparent bg-primary text-primary-foreground"
+                    : "border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+              >
+                Favoris uniquement
+              </button>
             </div>
+
+            {availableGameTypes.length > 1 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedGameTypeId(null)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    selectedGameTypeId === null
+                      ? "border-transparent bg-foreground text-background"
+                      : "border-border bg-card text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  Tous
+                </button>
+                {availableGameTypes.map((gt) => (
+                  <button
+                    key={gt.id}
+                    type="button"
+                    onClick={() => setSelectedGameTypeId(gt.id === selectedGameTypeId ? null : gt.id)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      selectedGameTypeId === gt.id
+                        ? "border-transparent bg-foreground text-background"
+                        : "border-border bg-card text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {gt.nom}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <p className="mt-1 text-sm text-muted-foreground">{cardsTotal} cartes possédées</p>
 
             {isLoadingData ? (
               <p className="mt-6 text-sm text-muted-foreground">Chargement des cartes...</p>
+            ) : displayedCards.length === 0 ? (
+              <p className="mt-6 text-sm text-muted-foreground">Aucune carte trouvée.</p>
             ) : (
               <>
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                  {cards.map((card) => (
+                  {displayedCards.map((card) => (
                     <LibraryCard
                       key={card.id}
                       card={card}
                       onDeleteFromLibrary={() => handleDeleteFromLibrary(card.id)}
                       isDeletingFromLibrary={deletingCardId === card.id}
+                      onToggleFavorite={() => handleToggleFavorite(card)}
+                      isTogglingFavorite={favoritingCardId === card.id}
+                      onCardClick={
+                        () =>
+                          navigate(
+                            `/card/${encodeURIComponent(card.name)}?setCode=${encodeURIComponent(
+                              card.extension
+                            )}&gameTypeId=${card.gameType.id}&gameTypeName=${encodeURIComponent(
+                              card.gameType.nom
+                            )}&apiSource=${encodeURIComponent(
+                              card.gameType.nom.toLowerCase().includes("rift")
+                                ? "riftbound"
+                                : card.gameType.nom.toLowerCase().includes("yu") || card.gameType.nom.toLowerCase().includes("ygo")
+                                  ? "yugioh"
+                                  : "magic"
+                            )}&libraryCardId=${card.id}&ownedNumber=${card.number}&isFavorite=${card.isFavorite ? "1" : "0"}`
+                          )
+                      }
                     />
                   ))}
                 </div>
 
-                <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
+                {!showFavoritesOnly && selectedGameTypeId === null && <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />}
               </>
             )}
           </section>

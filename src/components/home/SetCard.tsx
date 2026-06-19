@@ -5,10 +5,24 @@ import type { Set } from "@/types/set";
 export function SetCard({
   set,
   onDelete,
+  onDragOverCard,
+  onDragLeaveCard,
+  onDropCard,
+  isCardDragActive = false,
+  isDropTarget = false,
+  isDropDisabled = false,
+  isDropping = false,
   isDeleting = false,
 }: {
   set: Set;
   onDelete?: () => void;
+  onDragOverCard?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeaveCard?: () => void;
+  onDropCard?: (event: React.DragEvent<HTMLDivElement>) => void;
+  isCardDragActive?: boolean;
+  isDropTarget?: boolean;
+  isDropDisabled?: boolean;
+  isDropping?: boolean;
   isDeleting?: boolean;
 }) {
   const DELETE_ACTION_HEIGHT = 56;
@@ -124,8 +138,15 @@ export function SetCard({
           }
           endDeleteSlide();
         }}
+        onDragOver={onDragOverCard}
+        onDragLeave={() => {
+          onDragLeaveCard?.();
+        }}
+        onDrop={onDropCard}
         onDragStart={(e) => e.preventDefault()}
-        className="group relative z-20 flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left transition-[transform,box-shadow] duration-300 hover:shadow-md select-none touch-none cursor-grab active:cursor-grabbing"
+        className={`group relative z-20 flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left transition-[transform,box-shadow] duration-300 hover:shadow-md select-none touch-none cursor-grab active:cursor-grabbing ${
+          isCardDragActive && isDropDisabled ? "opacity-55" : ""
+        } ${isDropTarget ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
         style={{ transform: `translateY(${currentOffsetY}px)` }}
       >
         {/* Bandeau coloré */}
@@ -136,6 +157,11 @@ export function SetCard({
           <span className="rounded-full bg-card/90 px-2.5 py-1 text-xs font-semibold text-foreground">
             {gameType.name}
           </span>
+          {isDropTarget && (
+            <span className="rounded-full bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-primary">
+              {isDropping ? "Ajout..." : "Dépose ici"}
+            </span>
+          )}
         </div>
 
         {/* Infos */}

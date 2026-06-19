@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Heart, Minus, Plus } from "lucide-react";
 import type { Card } from "@/types/card";
 
 const GAME_ACCENT_VAR: Record<string, string> = {
@@ -13,16 +13,26 @@ export function LibraryCard({
   onAddToSet,
   onRemove,
   onDeleteFromLibrary,
+  onToggleFavorite,
+  onDragToSetStart,
+  onDragToSetEnd,
+  isDraggableToSet = false,
   isRemoving = false,
   isDeletingFromLibrary = false,
+  isTogglingFavorite = false,
   onCardClick,
 }: {
   card: Card;
   onAddToSet?: () => void;
   onRemove?: () => void;
   onDeleteFromLibrary?: () => void;
+  onToggleFavorite?: () => void;
+  onDragToSetStart?: (card: Card) => void;
+  onDragToSetEnd?: () => void;
+  isDraggableToSet?: boolean;
   isRemoving?: boolean;
   isDeletingFromLibrary?: boolean;
+  isTogglingFavorite?: boolean;
   onCardClick?: () => void;
 }) {
   const DELETE_ACTION_HEIGHT = 56;
@@ -44,6 +54,7 @@ export function LibraryCard({
       ? -DELETE_ACTION_HEIGHT
       : 0;
   const deleteRevealProgress = Math.min(1, Math.max(0, -currentOffsetY / DELETE_ACTION_HEIGHT));
+  const showFavoriteButton = typeof onToggleFavorite === "function";
 
   function beginDeleteSlide(clientY: number) {
     pointerStartYRef.current = clientY;
@@ -117,6 +128,7 @@ export function LibraryCard({
         onPointerDown={(e) => {
           if (!onDeleteFromLibrary) return;
           const target = e.target as HTMLElement;
+          if (target.closest("[data-card-drag-source='true']")) return;
           if (target.closest("button")) return;
           e.currentTarget.setPointerCapture(e.pointerId);
           beginDeleteSlide(e.clientY);
@@ -144,7 +156,11 @@ export function LibraryCard({
           "--accent": accent,
           transform: `translateY(${currentOffsetY}px)`,
         } as React.CSSProperties}
-        onDragStart={(e) => e.preventDefault()}
+        onDragStart={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest("[data-card-drag-source='true']")) return;
+          e.preventDefault();
+        }}
       >
       {onAddToSet && (
         <button
@@ -157,6 +173,23 @@ export function LibraryCard({
           className="absolute right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm transition hover:bg-background"
         >
           <Plus size={16} />
+        </button>
+      )}
+
+      {showFavoriteButton && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite?.();
+          }}
+          disabled={isTogglingFavorite}
+          aria-label={card.isFavorite ? `Retirer ${name} des favoris` : `Ajouter ${name} aux favoris`}
+          className={`absolute left-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 shadow-sm ring-1 ring-border backdrop-blur-sm transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-60 ${
+            card.isFavorite ? "text-rose-500" : "text-foreground"
+          }`}
+        >
+          <Heart size={16} fill={card.isFavorite ? "currentColor" : "none"} />
         </button>
       )}
 
@@ -198,11 +231,38 @@ export function LibraryCard({
           <img
             src={image}
             alt={name}
-            draggable={false}
+            draggable={isDraggableToSet}
+            data-card-drag-source={isDraggableToSet ? "true" : undefined}
+            onDragStart={(e) => {
+              if (!isDraggableToSet) return;
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", String(card.id));
+              onDragToSetStart?.(card);
+            }}
+            onDragEnd={() => {
+              if (!isDraggableToSet) return;
+              onDragToSetEnd?.();
+            }}
             className="relative z-10 h-full w-full object-contain p-4 drop-shadow-md transition-transform duration-300 group-hover:scale-[1.04]"
           />
         ) : (
-          <span className="relative z-10 text-5xl text-muted-foreground/60">🎴</span>
+          <span
+            className="relative z-10 text-5xl text-muted-foreground/60"
+            draggable={isDraggableToSet}
+            data-card-drag-source={isDraggableToSet ? "true" : undefined}
+            onDragStart={(e) => {
+              if (!isDraggableToSet) return;
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", String(card.id));
+              onDragToSetStart?.(card);
+            }}
+            onDragEnd={() => {
+              if (!isDraggableToSet) return;
+              onDragToSetEnd?.();
+            }}
+          >
+            🎴
+          </span>
         )}
 
         {/* Balayage holographique au survol */}
@@ -211,9 +271,9 @@ export function LibraryCard({
           aria-hidden="true"
         />
 
-        {/* Badge jeu, ancré en haut à gauche, par-dessus l'illustration */}
+        {/* Badge jeu, ancré en bas à gauche, par-dessus l'illustration */}
         <span
-          className="absolute left-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-card/95 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-foreground shadow-sm backdrop-blur-sm"
+          className="absolute bottom-3 left-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-card/95 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-foreground shadow-sm backdrop-blur-sm"
         >
           <span
             className="h-1.5 w-1.5 rounded-full"
